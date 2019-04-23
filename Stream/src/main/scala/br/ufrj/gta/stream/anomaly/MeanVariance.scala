@@ -1,95 +1,85 @@
 package br.ufrj.gta.stream.anomaly
 
-import util.control.Breaks._
-
-import org.apache.spark.sql._
+import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.functions._
-import org.apache.spark.ml.linalg.Vector
+import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.ml.{Predictor, PredictionModel}
+import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.stat.Summarizer
-import org.apache.spark.broadcast.Broadcast
 
-object MeanVariance {
-    private def summarize(df: DataFrame, featuresCol: String): Array[Vector] = {
-        val row = df.select(
+case class FeaturesMeanVariance(mean: Vector, variance: Vector)
+
+case class MeanVarianceLimits(lower: Vector, upper: Vector)
+
+class MeanVarianceClassifier(
+        override val uid: String
+    ) extends Predictor[Vector, MeanVarianceClassifier, MeanVarianceModel] {
+
+    private var threshold: Double = 0.5
+
+    def this() = this(Identifiable.randomUID("mvc"))
+
+    def getThreshold: Double = this.threshold
+
+    def setThreshold(value: Double): this.type = {
+        require(value >= 0.0, s"Threshold value must not be negative")
+        this.threshold = value
+        this
+    }
+
+    private def getFeaturesMeanVariance(dataset: Dataset[_]): FeaturesMeanVariance = {
+        val row = dataset.select(
             Summarizer.metrics("mean", "variance")
-                .summary(df(featuresCol))
+                .summary(dataset($(this.featuresCol)))
                 .as("summary"))
             .select("summary.mean", "summary.variance")
             .first()
 
-        Array(row.getAs[Vector](0), row.getAs[Vector](1))
+        FeaturesMeanVariance(row.getAs[Vector](0), row.getAs[Vector](1))
     }
 
-    def model(df: DataFrame, threshold: Double, featuresCol: String = "features"): Array[Array[Double]] = {
-        val summary = MeanVariance.summarize(df, featuresCol)
+    override def train(dataset: Dataset[_]): MeanVarianceModel = {
+        val summary = this.getFeaturesMeanVariance(dataset)
 
-        val mean = summary(0).toDense.toArray
-        val variance = summary(1).toDense.toArray
+        val mean = summary.mean.toDense.toArray
+        val variance = summary.variance.toDense.toArray
 
-        val modelBottom = mean.zip(variance).map {
-            case(x,y) => x - y * threshold
+        val lowerLimit = mean.zip(variance).map {
+            case(x,y) => x - y * this.threshold
         }
 
-        val modelTop = mean.zip(variance).map {
-            case(x,y) => x + y * threshold
+        val upperLimit = mean.zip(variance).map {
+            case(x,y) => x + y * this.threshold
         }
 
-        Array(modelBottom, modelTop)
+        new MeanVarianceModel(this.uid, MeanVarianceLimits(Vectors.dense(lowerLimit), Vectors.dense(upperLimit)))
     }
 
-    def test(model: Broadcast[Array[Array[Double]]], df: DataFrame, featuresRange: Range): DataFrame = {
-        val detect = udf {
-            (f: Vector) => {
-                var i = 0
-                var label = "0"
+    override def copy(extra: ParamMap): MeanVarianceClassifier = defaultCopy(extra)
+}
 
-                breakable {
-                    for (i <- featuresRange) {
-                        if (f(i - 1) < model.value(0)(i - 1) || f(i - 1) > model.value(1)(i - 1)) {
-                            label = "1"
-                            break
-                        }
-                    }
-                }
+class MeanVarianceModel(
+        override val uid: String, val limits: MeanVarianceLimits
+    ) extends PredictionModel[Vector, MeanVarianceModel] {
 
-                label
+    require(this.limits.lower.size == this.limits.upper.size, s"The sizes of lower and upper limits Vectors must be the equal")
+
+    override val numFeatures = this.limits.lower.size
+
+    override def copy(extra: ParamMap): MeanVarianceModel = {
+        copyValues(new MeanVarianceModel(this.uid, this.limits)).setParent(this.parent)
+    }
+
+    override def predict(features: Vector): Double = {
+        var i = 0
+
+        for (i <- 1 to this.numFeatures) {
+            if (features(i - 1) < this.limits.lower(i - 1) || features(i - 1) > this.limits.upper(i - 1)) {
+                return 1.0
             }
         }
 
-        df.withColumn("result", detect(df("features")))
-    }
-
-    def getAnomalies(model: Broadcast[Array[Array[Double]]], df: DataFrame, featuresRange: Range): DataFrame = {
-        def filterAnomaly(r: Row): Boolean = {
-            var i = 0
-            val f: Vector = r.getAs[Vector](r.size - 1)
-
-            for (i <- featuresRange) {
-                if (f(i - 1) < model.value(0)(i - 1) || f(i - 1) > model.value(1)(i - 1)) {
-                    return true
-                }
-            }
-
-            false
-        }
-
-        df.filter(filterAnomaly _)
-    }
-
-    def getLegitimates(model: Broadcast[Array[Array[Double]]], df: DataFrame, featuresRange: Range): DataFrame = {
-        def filterLegitimates(r: Row): Boolean = {
-            var i = 0
-            val f: Vector = r.getAs[Vector](r.size - 1)
-
-            for (i <- featuresRange) {
-                if (f(i - 1) < model.value(0)(i - 1) || f(i - 1) > model.value(1)(i - 1)) {
-                    return false
-                }
-            }
-
-            true
-        }
-
-        df.filter(filterLegitimates _)
+        0.0
     }
 }

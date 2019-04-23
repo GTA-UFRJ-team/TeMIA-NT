@@ -4,14 +4,16 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
 
-import br.ufrj.gta.stream.schema._
-import br.ufrj.gta.stream.anomaly._
+import br.ufrj.gta.stream.schema.GTA
+import br.ufrj.gta.stream.anomaly.{MeanVarianceClassifier, MeanVarianceModel}
 
 object Stream {
     def main(args: Array[String]) {
-        val sep: String = ","
-        val maxFilesPerTrigger: Int = 1
-        val threshold: Double = 1.0
+        val sep = ","
+        val maxFilesPerTrigger = 1
+        val threshold = 1.0
+        val featuresCol = "features"
+        val labelCol = "label"
 
         val schema = GTA.getSchema
 
@@ -31,19 +33,26 @@ object Stream {
             .schema(schema)
             .csv(inputFile)
 
-        val Array(trainingData, testData) = GTA.featurize(inputDataStatic).randomSplit(Array(0.7, 0.3))
+        val Array(trainingData, testData) = GTA.featurize(inputDataStatic, featuresCol).randomSplit(Array(0.7, 0.3))
 
-        val model = spark.sqlContext.sparkContext.broadcast(MeanVariance.model(trainingData, threshold))
+        val mv = new MeanVarianceClassifier()
 
-        println("# of anomalies")
-        println(MeanVariance.getAnomalies(model, testData, GTA.getFeaturesRange).collect().length)
+        mv.setFeaturesCol(featuresCol)
+        mv.setLabelCol(labelCol)
+
+        val model = mv.fit(trainingData)
+        val result = model.transform(testData)
+
+        result.cache()
+
+        println("# of test cases")
+        println(result.count())
 
         println("# of legitimates")
-        println(MeanVariance.getLegitimates(model, testData, GTA.getFeaturesRange).collect().length)
+        println(result.where(result(mv.getPredictionCol) === 0.0).count())
 
-        println("# of tested streams")
-        val result = MeanVariance.test(model, testData, GTA.getFeaturesRange)
-        println(result.collect()(0))*/
+        println("# of anomalies")
+        println(result.where(result(mv.getPredictionCol) === 1.0).count())*/
 
         // Testing using Structured Stream
         if (args.length < 3) {
@@ -68,15 +77,18 @@ object Stream {
             .schema(schema)
             .csv(inputTrainingFile)
 
-        val trainingData = GTA.featurize(inputDataStatic)
+        val trainingData = GTA.featurize(inputDataStatic, featuresCol)
 
-        val model = spark.sqlContext.sparkContext.broadcast(MeanVariance.model(trainingData, threshold))
+        val mv = new MeanVarianceClassifier()
 
-        val testData = GTA.featurize(inputDataStream)
+        mv.setFeaturesCol(featuresCol)
+        mv.setLabelCol(labelCol)
 
-        val classified = MeanVariance.test(model, testData, GTA.getFeaturesRange)
+        val model = mv.fit(trainingData)
 
-        val outputDataStream = classified.drop(classified("features")).writeStream
+        val result = model.transform(GTA.featurize(inputDataStream))
+
+        val outputDataStream = result.drop(result(featuresCol)).writeStream
             //.trigger(Trigger.Once())
             .outputMode("append")
             .option("checkpointLocation", outputPath + "checkpoints/")

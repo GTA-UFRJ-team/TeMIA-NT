@@ -53,7 +53,7 @@ object GTA {
             .add("total_fhlen", "int") // The total bytes used for headers in the forward direction.
             .add("total_bhlen", "int") // The total bytes used for headers in the backward direction.
             .add("dscp", "int") // The first set DSCP field for the flow.
-            .add("label", "string") // class label
+            .add("label", "int") // class label
     }
 
     def getFeaturesRange(): Range = {

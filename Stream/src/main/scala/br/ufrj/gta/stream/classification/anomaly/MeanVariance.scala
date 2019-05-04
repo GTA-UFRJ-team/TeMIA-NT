@@ -1,8 +1,9 @@
-package br.ufrj.gta.stream.anomaly
+package br.ufrj.gta.stream.classification.anomaly
 
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.functions._
-import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.ml.param._
+import org.apache.spark.ml.param.shared._
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Predictor, PredictionModel}
 import org.apache.spark.ml.linalg.{Vector, Vectors}
@@ -12,21 +13,24 @@ case class FeaturesMeanVariance(mean: Vector, variance: Vector)
 
 case class MeanVarianceLimits(lower: Vector, upper: Vector)
 
-class MeanVarianceClassifier(
-        override val uid: String
-    ) extends Predictor[Vector, MeanVarianceClassifier, MeanVarianceModel] {
+private[classification] trait MeanVarianceClassifierParams extends Params {
 
-    private var threshold: Double = 0.5
+    var threshold = new DoubleParam(this, "threshold", "threshold parameter (>= 0)")
 
-    def this() = this(Identifiable.randomUID("mvc"))
-
-    def getThreshold: Double = this.threshold
+    def getThreshold: DoubleParam = this.threshold
 
     def setThreshold(value: Double): this.type = {
         require(value >= 0.0, s"Threshold value must not be negative")
-        this.threshold = value
-        this
+        set(this.threshold, value)
     }
+}
+
+class MeanVarianceClassifier(
+        override val uid: String)
+    extends Predictor[Vector, MeanVarianceClassifier, MeanVarianceModel]
+    with MeanVarianceClassifierParams {
+
+    def this() = this(Identifiable.randomUID("mvc"))
 
     private def getFeaturesMeanVariance(dataset: Dataset[_]): FeaturesMeanVariance = {
         val row = dataset.select(
@@ -46,11 +50,11 @@ class MeanVarianceClassifier(
         val variance = summary.variance.toDense.toArray
 
         val lowerLimit = mean.zip(variance).map {
-            case(x,y) => x - y * this.threshold
+            case(x,y) => x - y * $(this.threshold)
         }
 
         val upperLimit = mean.zip(variance).map {
-            case(x,y) => x + y * this.threshold
+            case(x,y) => x + y * $(this.threshold)
         }
 
         new MeanVarianceModel(this.uid, MeanVarianceLimits(Vectors.dense(lowerLimit), Vectors.dense(upperLimit)))
@@ -59,9 +63,9 @@ class MeanVarianceClassifier(
     override def copy(extra: ParamMap): MeanVarianceClassifier = defaultCopy(extra)
 }
 
-class MeanVarianceModel(
-        override val uid: String, val limits: MeanVarianceLimits
-    ) extends PredictionModel[Vector, MeanVarianceModel] {
+private[stream] class MeanVarianceModel(
+        override val uid: String, val limits: MeanVarianceLimits)
+    extends PredictionModel[Vector, MeanVarianceModel] {
 
     require(this.limits.lower.size == this.limits.upper.size, s"The sizes of lower and upper limits Vectors must be the equal")
 

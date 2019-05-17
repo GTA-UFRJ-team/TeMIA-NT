@@ -1,12 +1,14 @@
 package br.ufrj.gta.stream
 
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import org.apache.spark.ml.tuning.ParamGridBuilder
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 
-import br.ufrj.gta.stream.schema.GTA
 import br.ufrj.gta.stream.classification.anomaly.MeanVarianceClassifier
+import br.ufrj.gta.stream.tuning.MeanVarianceCrossValidator
+import br.ufrj.gta.stream.schema.GTA
 
 object Stream {
     def main(args: Array[String]) {
@@ -27,7 +29,7 @@ object Stream {
 
         val inputFileTraining = args(0)
         val inputFileTest = args(1)
-        val threshold = args(2).toDouble
+        val numFolds = args(2).toInt
 
         val inputDataStaticTraining = spark.read
             .option("sep", sep)
@@ -50,12 +52,22 @@ object Stream {
 
         mv.setFeaturesCol(featuresCol)
         mv.setLabelCol(labelCol)
-        mv.set[Double](mv.threshold, threshold)
+        //mv.set[Double](mv.threshold, threshold)
 
         val ev = new MulticlassClassificationEvaluator()
 
-        val model = mv.fit(trainingData)
-        val result = model.transform(testData)
+        val pg = new ParamGridBuilder()
+            .addGrid(mv.threshold, Array(0.1, 0.5, 1.0, 3.0, 5.0, 10.0))
+            .build()
+
+        val cv = new MeanVarianceCrossValidator()
+            .setEstimator(mv)
+            .setEvaluator(ev)
+            .setEstimatorParamMaps(pg)
+            .setNumFolds(numFolds)
+
+        val model = cv.fit(trainingData, testData)
+        val result = model.transform(testData.randomSplit(Array(0.7, 0.3))(1))
 
         result.cache()
 

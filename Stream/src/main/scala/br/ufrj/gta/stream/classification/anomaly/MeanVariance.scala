@@ -1,20 +1,19 @@
 package br.ufrj.gta.stream.classification.anomaly
 
-import org.apache.spark.sql.{Dataset, DataFrame}
-import org.apache.spark.sql.functions._
+import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.param.shared._
-import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Predictor, PredictionModel}
-import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.stat.Summarizer
+import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.sql.{Dataset, DataFrame}
+import org.apache.spark.sql.functions._
 
 case class FeaturesMeanVariance(mean: Vector, variance: Vector)
 
 case class MeanVarianceLimits(lower: Vector, upper: Vector)
 
 private[classification] trait MeanVarianceClassifierParams extends Params {
-
     var threshold = new DoubleParam(this, "threshold", "threshold parameter (>= 0)")
 
     def getThreshold: DoubleParam = this.threshold
@@ -25,8 +24,7 @@ private[classification] trait MeanVarianceClassifierParams extends Params {
     }
 }
 
-class MeanVarianceClassifier(
-        override val uid: String)
+class MeanVarianceClassifier(override val uid: String)
     extends Predictor[Vector, MeanVarianceClassifier, MeanVarianceModel]
     with MeanVarianceClassifierParams {
 
@@ -64,7 +62,8 @@ class MeanVarianceClassifier(
 }
 
 private[stream] class MeanVarianceModel(
-        override val uid: String, val limits: MeanVarianceLimits)
+        override val uid: String,
+        val limits: MeanVarianceLimits)
     extends PredictionModel[Vector, MeanVarianceModel] {
 
     require(this.limits.lower.size == this.limits.upper.size, s"The sizes of lower and upper limits Vectors must be the equal")

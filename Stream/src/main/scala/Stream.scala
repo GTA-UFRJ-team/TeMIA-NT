@@ -6,7 +6,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
 
-import br.ufrj.gta.stream.classification.anomaly.MeanVarianceClassifier
+import br.ufrj.gta.stream.classification.anomaly.{MeanVarianceClassifier, EntropyClassifier}
 import br.ufrj.gta.stream.tuning.MeanVarianceCrossValidator
 import br.ufrj.gta.stream.schema.GTA
 
@@ -15,6 +15,7 @@ object Stream {
         val sep = ","
         val maxFilesPerTrigger = 1
         val featuresCol = "features"
+        val entropyCol = "entropy"
         val labelCol = "label"
 
         val schema = GTA.getSchema
@@ -43,16 +44,13 @@ object Stream {
             .schema(schema)
             .csv(inputFileTest)
 
-        //val Array(trainingData, testData) = GTA.featurize(inputDataStatic, featuresCol).randomSplit(Array(0.7, 0.3))
-
         val trainingData = GTA.featurize(inputDataStaticTraining, featuresCol)
         val testData = GTA.featurize(inputDataStaticTest, featuresCol)
 
-        val mv = new MeanVarianceClassifier()
-
-        mv.setFeaturesCol(featuresCol)
-        mv.setLabelCol(labelCol)
-        //mv.set[Double](mv.threshold, threshold)
+        /*val mv = new MeanVarianceClassifier()
+            .setFeaturesCol(featuresCol)
+            .setLabelCol(labelCol)
+            //.set[Double](mv.threshold, threshold)
 
         val ev = new MulticlassClassificationEvaluator()
 
@@ -67,9 +65,20 @@ object Stream {
             .setNumFolds(numFolds)
 
         val model = cv.fit(trainingData, testData)
-        val result = model.transform(testData.randomSplit(Array(0.7, 0.3))(1))
+        val result = model.transform(testData.randomSplit(Array(0.7, 0.3))(1))*/
+
+        val e = new EntropyClassifier()
+            .setFeaturesCol(featuresCol)
+            .setEntropyCol(entropyCol)
+
+        val model = e.fit(trainingData)
+        val result = model.transform(testData)
 
         result.cache()
+
+        result.select(entropyCol).show()
+
+        val ev = new MulticlassClassificationEvaluator()
 
         val f1 = ev.setMetricName("f1").evaluate(result)
         val acc = ev.setMetricName("accuracy").evaluate(result)
@@ -78,10 +87,10 @@ object Stream {
         println(result.count())
 
         println("# of legitimates")
-        println(result.where(result(mv.getPredictionCol) === 0.0).count())
+        println(result.where(result(e.getPredictionCol) === 0.0).count())
 
         println("# of anomalies")
-        println(result.where(result(mv.getPredictionCol) === 1.0).count())
+        println(result.where(result(e.getPredictionCol) === 1.0).count())
 
         println("F1")
         println(f1)

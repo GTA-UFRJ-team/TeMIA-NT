@@ -47,7 +47,8 @@ object Stream {
         val trainingData = GTA.featurize(inputDataStaticTraining, featuresCol)
         val testData = GTA.featurize(inputDataStaticTest, featuresCol)
 
-        /*val mv = new MeanVarianceClassifier()
+        // MeanVariance
+        val mv = new MeanVarianceClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             //.set[Double](mv.threshold, threshold)
@@ -65,20 +66,25 @@ object Stream {
             .setNumFolds(numFolds)
 
         val model = cv.fit(trainingData, testData)
-        val result = model.transform(testData.randomSplit(Array(0.7, 0.3))(1))*/
+        val result = model.transform(testData.randomSplit(Array(0.7, 0.3))(1))
 
-        val e = new EntropyClassifier()
+        val predictionCol = mv.getPredictionCol
+
+        // Entropy
+        /*val e = new EntropyClassifier()
             .setFeaturesCol(featuresCol)
             .setEntropyCol(entropyCol)
+            .setNumRanges(3)
+            .setWindowSize(4)
+
+        val ev = new MulticlassClassificationEvaluator()
 
         val model = e.fit(trainingData)
         val result = model.transform(testData)
 
+        val predictionCol = e.getPredictionCol*/
+
         result.cache()
-
-        result.select(entropyCol).show()
-
-        val ev = new MulticlassClassificationEvaluator()
 
         val f1 = ev.setMetricName("f1").evaluate(result)
         val acc = ev.setMetricName("accuracy").evaluate(result)
@@ -87,10 +93,10 @@ object Stream {
         println(result.count())
 
         println("# of legitimates")
-        println(result.where(result(e.getPredictionCol) === 0.0).count())
+        println(result.where(result(predictionCol) === 0.0).count())
 
         println("# of anomalies")
-        println(result.where(result(e.getPredictionCol) === 1.0).count())
+        println(result.where(result(predictionCol) === 1.0).count())
 
         println("F1")
         println(f1)

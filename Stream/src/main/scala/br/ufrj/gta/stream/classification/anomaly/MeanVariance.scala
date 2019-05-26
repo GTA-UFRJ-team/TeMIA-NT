@@ -9,9 +9,9 @@ import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.functions._
 
-case class FeaturesMeanVariance(mean: Vector, variance: Vector)
+case class FeaturesMeanVariance(mean: Array[Double], variance: Array[Double])
 
-case class MeanVarianceLimits(lower: Vector, upper: Vector)
+case class MeanVarianceLimits(lower: Array[Double], upper: Array[Double])
 
 private[classification] trait MeanVarianceClassifierParams extends Params {
     var threshold = new DoubleParam(this, "threshold", "threshold parameter (>= 0)")
@@ -38,14 +38,14 @@ class MeanVarianceClassifier(override val uid: String)
             .select("summary.mean", "summary.variance")
             .first()
 
-        FeaturesMeanVariance(row.getAs[Vector](0), row.getAs[Vector](1))
+        FeaturesMeanVariance(row.getAs[Vector](0).toArray, row.getAs[Vector](1).toArray)
     }
 
     override def train(dataset: Dataset[_]): MeanVarianceModel = {
         val summary = this.getFeaturesMeanVariance(dataset)
 
-        val mean = summary.mean.toDense.toArray
-        val variance = summary.variance.toDense.toArray
+        val mean = summary.mean
+        val variance = summary.variance
 
         val lowerLimit = mean.zip(variance).map {
             case(x,y) => x - y * $(this.threshold)
@@ -55,7 +55,7 @@ class MeanVarianceClassifier(override val uid: String)
             case(x,y) => x + y * $(this.threshold)
         }
 
-        new MeanVarianceModel(this.uid, MeanVarianceLimits(Vectors.dense(lowerLimit), Vectors.dense(upperLimit)))
+        new MeanVarianceModel(this.uid, MeanVarianceLimits(lowerLimit, upperLimit))
     }
 
     override def copy(extra: ParamMap): MeanVarianceClassifier = defaultCopy(extra)

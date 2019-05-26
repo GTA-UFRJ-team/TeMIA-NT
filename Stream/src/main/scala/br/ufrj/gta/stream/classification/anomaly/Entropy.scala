@@ -6,7 +6,6 @@ import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.param.shared._
 import org.apache.spark.ml.{Predictor, PredictionModel}
-//import org.apache.spark.ml.stat.Summarizer
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.functions._
@@ -14,13 +13,10 @@ import org.apache.spark.sql.functions._
 private[classification] trait EntropyClassifierParams extends Params {
     var numRanges = new IntParam(this, "numRanges", "number of ranges in the histogram parameter (>= 1)")
     var windowSize = new IntParam(this, "windowSize", "window size parameter (>= 1)")
-    var entropyCol = new Param[String](this, "entropyCol", "column parameter storing the entropy of the features for a sliding window")
 
     def getNumRanges: IntParam = this.numRanges
 
     def getWindowSize: IntParam = this.windowSize
-
-    def getEntropyCol: Param[String] = this.entropyCol
 
     def setNumRanges(value: Int): this.type = {
         require(value >= 1, s"Number of ranges must be greater or equal to one")
@@ -30,11 +26,6 @@ private[classification] trait EntropyClassifierParams extends Params {
     def setWindowSize(value: Int): this.type = {
         require(value >= 1, s"Window Size must be greater or equal to one")
         set(this.windowSize, value)
-    }
-
-    def setEntropyCol(value: String): this.type = {
-        require(!value.trim.isEmpty, s"Entropy column must not be empty")
-        set(this.entropyCol, value)
     }
 }
 

@@ -56,8 +56,12 @@ object GTA {
             .add("label", "int") // class label
     }
 
+    def getNumFeatures(): Int = {
+        40
+    }
+
     def getFeaturesRange(): Range = {
-        1 to 40
+        0 until 40
     }
 
     private def getFeaturesVector(outputCol: String): VectorAssembler = {

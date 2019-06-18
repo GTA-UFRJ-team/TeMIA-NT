@@ -15,7 +15,6 @@ object Stream {
         val sep = ","
         val maxFilesPerTrigger = 1
         val featuresCol = "features"
-        val entropyCol = "entropy"
         val labelCol = "label"
 
         val schema = GTA.getSchema
@@ -51,7 +50,7 @@ object Stream {
         val mv = new MeanVarianceClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
-            //.set[Double](mv.threshold, threshold)
+            //.setThreshold(3.0)
 
         val ev = new MulticlassClassificationEvaluator()
 
@@ -73,9 +72,10 @@ object Stream {
         // Entropy
         /*val e = new EntropyClassifier()
             .setFeaturesCol(featuresCol)
-            .setEntropyCol(entropyCol)
-            .setNumRanges(3)
-            .setWindowSize(4)
+            .setNumRanges(30)
+            .setWindowSize(40)
+            .setThreshold(3.0)
+            .setNumFeatures(GTA.getNumFeatures())
 
         val ev = new MulticlassClassificationEvaluator()
 

@@ -1,14 +1,17 @@
 package br.ufrj.gta.stream.classification.anomaly
 
-import scala.collection.mutable.Queue
-
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.param._
-import org.apache.spark.ml.param.shared._
 import org.apache.spark.ml.{Predictor, PredictionModel}
 import org.apache.spark.ml.util.Identifiable
-import org.apache.spark.sql.{Dataset, DataFrame}
+import org.apache.spark.mllib.rdd.RDDFunctions
+import org.apache.spark.sql.{Row, Dataset, DataFrame}
 import org.apache.spark.sql.functions._
+
+import br.ufrj.gta.stream.param._
+import br.ufrj.gta.stream.util.StreamUtils
+
+case class EntropyLimits(lower: Array[Double], upper: Array[Double])
 
 private[classification] trait EntropyClassifierParams extends Params {
     var numRanges = new IntParam(this, "numRanges", "number of ranges in the histogram parameter (>= 1)")
@@ -19,93 +22,83 @@ private[classification] trait EntropyClassifierParams extends Params {
     def getWindowSize: IntParam = this.windowSize
 
     def setNumRanges(value: Int): this.type = {
-        require(value >= 1, s"Number of ranges must be greater or equal to one")
+        require(value >= 1, s"Number of ranges must be greater than or equal to one")
         set(this.numRanges, value)
     }
 
     def setWindowSize(value: Int): this.type = {
-        require(value >= 1, s"Window Size must be greater or equal to one")
+        require(value >= 1, s"Window Size must be greater than or equal to one")
         set(this.windowSize, value)
     }
 }
 
 class EntropyClassifier(override val uid: String)
     extends Predictor[Vector, EntropyClassifier, EntropyModel]
-    with EntropyClassifierParams {
+    with EntropyClassifierParams with HasThresholdParams with HasNumFeaturesParams {
 
     def this() = this(Identifiable.randomUID("ec"))
 
-    private def log2(value: Double): Double = scala.math.log(value) / scala.math.log(2)
-
-    private def histogram(data: Array[Double], numRanges: Int): Map[Int, Int] = {
-        val max = data.max
-        val min = data.min
-
-        data.map(e => ((e - min) / (max - min) * numRanges).floor.toInt)
-            .groupBy(b => b)
-            .map(b => b._1 -> b._2.size)
-    }
-
-    private def getWindowEntropy(window: Array[Array[Double]]): Array[Double] = {
+    private def getFeaturesEntropy(dataset: Dataset[_]): EntropyLimits = {
         val numRanges = $(this.numRanges)
         val windowSize = $(this.windowSize)
-        val numFeatures = window(0).size
-
-        val entropy = Array.ofDim[Double](numFeatures)
-
-        // Transposes the window so that each line corresponds to an Array with the values of a feature
-        val transposed = window.transpose[Double]
-
-        for (i <- 0 until transposed.size) {
-            for ((k, v) <- this.histogram(transposed(i), numRanges)) {
-                val freq = 1.0 * v / windowSize
-                entropy(i) -= freq * this.log2(freq)
-            }
-        }
-
-        entropy
-    }
-
-    // TODO: optimize
-    private def getSlidingWindowsEntropy(dataset: Dataset[_]): Array[Array[Double]] = {
-        val datasetSize = dataset.count
-        val windowSize = $(this.windowSize)
+        val threshold = $(this.threshold)
+        val numFeatures = $(this.numFeatures)
         val featuresCol = $(this.featuresCol)
 
-        val featuresDataset = dataset.select(dataset(featuresCol)).cache()
-        val numFeatures = featuresDataset.first().getAs[Vector](0).size
+        val slidingRDD = new RDDFunctions(dataset.select(dataset(featuresCol)).rdd).sliding(windowSize)
 
-        val slidingWindows = Array.ofDim[Array[Double]]((datasetSize - windowSize + 1).toInt)
+        val slidingWindows = slidingRDD.map { window =>
+            val features = window.toArray.map(r => r.getAs[Vector](featuresCol).toArray)
 
-        val iterator = featuresDataset.toLocalIterator()
+            val entropy = Array.ofDim[Double](numFeatures)
 
-        // Using a queue (FIFO) to store the features Vector of a window
-        var windowFeatures = Queue[Array[Double]]()
-        var i = 0
-        var w = 0
-        while (iterator.hasNext) {
-            windowFeatures.enqueue(iterator.next.getAs[Vector](featuresCol).toArray)
-            i += 1
+            // Transposes the window so that each line corresponds to an Array with the values of a feature
+            val transposed = features.transpose[Double]
 
-            // Enqueues the elements until an entire window (windowSize features) has been collected
-            if (i - windowSize == w) {
-                // Before the calculation of the entropy, pops out an element to keep it with exactly windowSize elements
-                if (w != 0) {
-                    windowFeatures.dequeue
+            var i = 0
+
+            for (i <- 0 until transposed.size) {
+                for ((k, v) <- StreamUtils.histogram(transposed(i), numRanges)) {
+                    val freq = 1.0 * v / windowSize
+                    entropy(i) -= freq * StreamUtils.log2(freq)
                 }
-
-                slidingWindows(w) = this.getWindowEntropy(windowFeatures.toArray)
-                w += 1
             }
+
+            entropy
+        }.cache()
+
+        var lowerLimit = Array.ofDim[Double](numFeatures)
+        var upperLimit = Array.ofDim[Double](numFeatures)
+
+        // TODO: optimize
+        var i = 0
+
+        for (i <- 0 until numFeatures) {
+            val (buckets, counts) = slidingWindows.map(
+                f => f(i)
+            ).histogram(numRanges)
+
+	        val index = counts.indexOf(counts.max)
+
+	        if (index == buckets.size - 1) {
+    	        lowerLimit(i) = buckets(index) - threshold
+    	        upperLimit(i) = lowerLimit(i) + (lowerLimit(i) - buckets(index - 1)) + threshold
+	        } else {
+	            lowerLimit(i) = buckets(index) - threshold
+	            upperLimit(i) = buckets(index + 1) + threshold
+	        }
         }
 
-        featuresDataset.unpersist()
+        slidingWindows.unpersist()
 
-        slidingWindows
+        EntropyLimits(lowerLimit, upperLimit)
     }
 
     override def train(dataset: Dataset[_]): EntropyModel = {
-        new EntropyModel(this.uid, this.getSlidingWindowsEntropy(dataset))
+        new EntropyModel(this.uid, this.getFeaturesEntropy(dataset))
+            .setFeaturesCol($(this.featuresCol))
+            .setWindowSize($(this.windowSize))
+            .setNumRanges($(this.numRanges))
     }
 
     override def copy(extra: ParamMap): EntropyClassifier = defaultCopy(extra)
@@ -113,16 +106,65 @@ class EntropyClassifier(override val uid: String)
 
 private[stream] class EntropyModel(
         override val uid: String,
-        val entropy: Array[Array[Double]])
-    extends PredictionModel[Vector, EntropyModel] {
+        val limits: EntropyLimits)
+    extends PredictionModel[Vector, EntropyModel]
+    with EntropyClassifierParams {
 
-    override val numFeatures = this.entropy.size
+    require(this.limits.lower.size == this.limits.upper.size, s"The sizes of lower and upper limits arrays must be equal")
+
+    override val numFeatures = this.limits.lower.size
 
     override def copy(extra: ParamMap): EntropyModel = {
-        copyValues(new EntropyModel(this.uid, this.entropy)).setParent(this.parent)
+        copyValues(new EntropyModel(this.uid, this.limits)).setParent(this.parent)
+    }
+
+    override def transformImpl(dataset: Dataset[_]): DataFrame = {
+        val numRanges = $(this.numRanges)
+        val windowSize = $(this.windowSize)
+        val featuresCol = $(this.featuresCol)
+
+        val numFeatures = this.numFeatures
+
+        val featuresDataset = dataset.select(dataset(featuresCol))
+        val schema = featuresDataset.schema
+        val sparkSession = featuresDataset.sparkSession
+
+        val windowsEntropy = featuresDataset.rdd
+            .zipWithIndex()
+            .map(t => ((t._2 * 1.0 / windowSize).toInt, t._1))
+            .groupByKey()
+            .map { t =>
+                val features = t._2.toArray.map(r => r.getAs[Vector](0).toArray)
+
+                val entropy = Array.ofDim[Double](numFeatures)
+
+                // Transposes the window so that each line corresponds to an Array with the values of a feature
+                val transposed = features.transpose[Double]
+
+                var i = 0
+
+                for (i <- 0 until transposed.size) {
+                    for ((k, v) <- StreamUtils.histogram(transposed(i), numRanges)) {
+                        val freq = 1.0 * v / windowSize
+                        entropy(i) -= freq * StreamUtils.log2(freq)
+                    }
+                }
+
+                Row(Vectors.dense(entropy))
+            }
+
+        super.transformImpl(sparkSession.createDataFrame(windowsEntropy, schema))
     }
 
     override def predict(features: Vector): Double = {
-        0.0
+        var i = 0
+
+	    for (i <- 0 until this.numFeatures) {
+	        if (features(i) < this.limits.lower(i) || features(i) > this.limits.lower(i)) {
+    		    return 1.0
+	        }
+	    }
+
+	    0.0
     }
 }

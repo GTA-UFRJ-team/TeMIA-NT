@@ -1,6 +1,6 @@
 package br.ufrj.gta.stream.util
 
-object StreamUtils {
+object Statistics {
     def log2(value: Double): Double = scala.math.log(value) / scala.math.log(2)
 
     def histogram(data: Array[Double], numRanges: Int): Map[Int, Int] = {

@@ -30,7 +30,7 @@ object MeanVariance {
 
         val inputTrainingFile = args(0)
         val inputTestFile = args(1)
-        val outputPath = File.appendSlash(args(2))
+        val outputMetricsPath = File.appendSlash(args(2))
         val threshold = args(3).toDouble
 
         val inputTrainingData = spark.read
@@ -65,7 +65,7 @@ object MeanVariance {
 
         Metrics.exportPredictionMetrics(
             Metrics.getPredictionMetrics(result, predictionCol),
-            outputPath + "metrics/" + metricsFilename,
+            outputMetricsPath + metricsFilename,
             "csv"
         )
 

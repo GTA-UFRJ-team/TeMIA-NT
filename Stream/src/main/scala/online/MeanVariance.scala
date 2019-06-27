@@ -30,9 +30,9 @@ object MeanVariance {
         }
 
         val inputTrainingFile = args(0)
-        val inputTestFile = args(1)
-        val inputTestPath = args(2)
-        val outputPath = File.appendSlash(args(3))
+        val inputTestPath = args(1)
+        val outputPath = File.appendSlash(args(2))
+        val outputMetricsPath = File.appendSlash(args(3))
         val timeoutStream = args(4).toLong
         val threshold = args(5).toDouble
 
@@ -42,12 +42,6 @@ object MeanVariance {
             .schema(schema)
             .csv(inputTrainingFile)
 
-        val inputTestData = spark.read
-            .option("sep", sep)
-            .option("header", false)
-            .schema(schema)
-            .csv(inputTestFile)
-
         val inputTestDataStream = spark.readStream
             .option("sep", sep)
             .option("header", false)
@@ -55,7 +49,6 @@ object MeanVariance {
             .csv(inputTestPath)
 
         val trainingData = GTA.featurize(inputTrainingData, featuresCol)
-        val testData = GTA.featurize(inputTestData, featuresCol)
 
         val mv = new MeanVarianceClassifier()
             .setFeaturesCol(featuresCol)
@@ -72,7 +65,7 @@ object MeanVariance {
             .outputMode("append")
             .option("checkpointLocation", outputPath + "checkpoints/")
             .format("csv")
-            .option("path", outputPath + "result/")
+            .option("path", outputPath)
             .start()
 
         outputDataStream.awaitTermination(timeoutStream)
@@ -81,13 +74,13 @@ object MeanVariance {
             .option("sep", sep)
             .option("header", false)
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
-            .csv(outputPath + "result/*.csv")
+            .csv(outputPath + "*.csv")
 
         val metricsFilename = "online_mean_variance.csv"
 
         Metrics.exportPredictionMetrics(
             Metrics.getPredictionMetrics(inputResultData, predictionCol),
-            outputPath + "metrics/" + metricsFilename,
+            outputMetricsPath + metricsFilename,
             "csv"
         )
 

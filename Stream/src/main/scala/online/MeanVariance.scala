@@ -79,7 +79,7 @@ object MeanVariance {
         val metricsFilename = "online_mean_variance.csv"
 
         Metrics.exportPredictionMetrics(
-            Metrics.getPredictionMetrics(inputResultData, predictionCol),
+            Metrics.getPredictionMetrics(inputResultData, labelCol, predictionCol),
             outputMetricsPath + metricsFilename,
             "csv"
         )

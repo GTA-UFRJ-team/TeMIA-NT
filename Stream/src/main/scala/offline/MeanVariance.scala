@@ -1,8 +1,7 @@
 package offline
 
 import org.apache.spark.ml.Model
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.ml.tuning.ParamGridBuilder
+import org.apache.spark.ml.feature.PCA
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
@@ -16,8 +15,10 @@ object MeanVariance {
     def main(args: Array[String]) {
         val sep = ","
         val maxFilesPerTrigger = 1
-        val featuresCol = "features"
         val labelCol = "label"
+
+        val pcaFeaturesCol = "pcaFeatures"
+        var featuresCol = "features"
 
         val schema = GTA.getSchema
 
@@ -32,6 +33,11 @@ object MeanVariance {
         val inputTestFile = args(1)
         val outputMetricsPath = File.appendSlash(args(2))
         val threshold = args(3).toDouble
+        val pcaK: Option[Int] = try {
+            Some(args(4).toInt)
+        } catch {
+            case e: Exception => None
+        }
 
         val inputTrainingData = spark.read
             .option("sep", sep)
@@ -45,8 +51,22 @@ object MeanVariance {
             .schema(schema)
             .csv(inputTestFile)
 
-        val trainingData = GTA.featurize(inputTrainingData, featuresCol)
-        val testData = GTA.featurize(inputTestData, featuresCol)
+        val (trainingData, testData) = pcaK match {
+            case Some(pcaK) => {
+                val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
+                val featurizedTestData = GTA.featurize(inputTestData, featuresCol)
+
+                val pca = new PCA()
+                    .setInputCol(featuresCol)
+                    .setOutputCol(pcaFeaturesCol)
+                    .setK(pcaK)
+
+                featuresCol = pcaFeaturesCol
+
+                (pca.fit(featurizedTrainingData).transform(featurizedTrainingData), pca.fit(featurizedTrainingData).transform(featurizedTestData))
+            }
+            case None => (GTA.featurize(inputTrainingData, featuresCol), GTA.featurize(inputTestData, featuresCol))
+        }
 
         val mv = new MeanVarianceClassifier()
             .setFeaturesCol(featuresCol)

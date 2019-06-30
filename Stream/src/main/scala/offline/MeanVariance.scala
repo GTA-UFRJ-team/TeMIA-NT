@@ -50,7 +50,7 @@ object MeanVariance {
         val (trainingData, testData) = pcaK match {
             case Some(pcaK) => {
                 val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-                val featurizedTestData = GTA.featurize(inputTestData, featuresCol)
+                val featurizedTestData = GTA.featurize(inputTestData, featuresCol).randomSplit(Array(0.7, 0.3))(1)
 
                 val pca = new PCA()
                     .setInputCol(featuresCol)
@@ -71,7 +71,7 @@ object MeanVariance {
 
         val model = mv.fit(trainingData)
 
-        val result = model.transform(testData.randomSplit(Array(0.7, 0.3))(1))
+        val result = model.transform(testData)
 
         result.cache()
 

@@ -1,20 +1,16 @@
 package offline
 
-import org.apache.spark.ml.Model
 import org.apache.spark.ml.feature.PCA
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.streaming.Trigger
 
 import br.ufrj.gta.stream.classification.anomaly.MeanVarianceClassifier
-import br.ufrj.gta.stream.tuning.MeanVarianceCrossValidator
 import br.ufrj.gta.stream.schema.GTA
 import br.ufrj.gta.stream.util.{File, Metrics}
 
 object MeanVariance {
     def main(args: Array[String]) {
         val sep = ","
-        val maxFilesPerTrigger = 1
         val labelCol = "label"
 
         val pcaFeaturesCol = "pcaFeatures"

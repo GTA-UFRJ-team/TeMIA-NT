@@ -38,11 +38,11 @@ class MeanVarianceClassifier(override val uid: String)
         val variance = summary.variance
 
         val lowerLimit = mean.zip(variance).map {
-            case(x,y) => x - y * $(this.threshold)
+            case (x,y) => x - y * $(this.threshold)
         }
 
         val upperLimit = mean.zip(variance).map {
-            case(x,y) => x + y * $(this.threshold)
+            case (x,y) => x + y * $(this.threshold)
         }
 
         new MeanVarianceModel(this.uid, MeanVarianceLimits(lowerLimit, upperLimit))

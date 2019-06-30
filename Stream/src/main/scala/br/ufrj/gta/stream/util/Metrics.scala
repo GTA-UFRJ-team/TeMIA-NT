@@ -5,7 +5,7 @@ import java.lang.Exception
 import org.apache.spark.sql.Dataset
 
 object Metrics {
-    def getPredictionMetrics(predictions: Dataset[_], labelCol: String, predictionCol: String): Map[String, Any] = {
+    def getPrediction(predictions: Dataset[_], labelCol: String, predictionCol: String): Map[String, Any] = {
         val size = predictions.count()
 
         val rn = predictions.where(predictions(labelCol) === 0.0).count()
@@ -32,7 +32,7 @@ object Metrics {
         )
     }
 
-    def exportPredictionMetrics(predictions: Map[String, Any], filename: String, format: String): Unit = {
+    def exportPrediction(predictions: Map[String, Any], filename: String, format: String): Unit = {
         val f = format.toLowerCase
 
         if (f == "csv") {

@@ -64,7 +64,7 @@ object GTA {
         0 until 40
     }
 
-    private def getFeaturesVector(outputCol: String): VectorAssembler = {
+    private def getFeaturesVector(featuresCol: String): VectorAssembler = {
         new VectorAssembler()
             .setInputCols(
                 GTA.getSchema
@@ -73,10 +73,10 @@ object GTA {
                     .takeRight(41)
                     .dropRight(1)
                     .toArray)
-            .setOutputCol(outputCol)
+            .setOutputCol(featuresCol)
     }
 
-    def featurize(df: DataFrame, outputCol: String = "features"): DataFrame = {
-        GTA.getFeaturesVector(outputCol).transform(df)
+    def featurize(df: DataFrame, featuresCol: String = "features"): DataFrame = {
+        GTA.getFeaturesVector(featuresCol).transform(df)
     }
 }

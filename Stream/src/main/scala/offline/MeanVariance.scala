@@ -47,45 +47,44 @@ object MeanVariance {
             .schema(schema)
             .csv(inputTestFile)
 
-        val (trainingData, testData) = pcaK match {
-            case Some(pcaK) => {
-                val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-                val featurizedTestData = GTA.featurize(inputTestData, featuresCol).randomSplit(Array(0.7, 0.3))(1)
+        val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
+        val featurizedTestData = GTA.featurize(inputTestData, featuresCol).randomSplit(Array(0.7, 0.3))(1)
 
+        val (trainingData, testData, metricsFilename) = pcaK match {
+            case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
                     .setOutputCol(pcaFeaturesCol)
                     .setK(pcaK)
+                    .fit(featurizedTrainingData)
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.fit(featurizedTrainingData).transform(featurizedTrainingData), pca.fit(featurizedTrainingData).transform(featurizedTestData))
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "offline_mean_variance_pca.csv")
             }
-            case None => (GTA.featurize(inputTrainingData, featuresCol), GTA.featurize(inputTestData, featuresCol))
+            case None => (featurizedTrainingData, featurizedTestData, "offline_mean_variance.csv")
         }
 
-        val mv = new MeanVarianceClassifier()
+        val classifier = new MeanVarianceClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             .setThreshold(threshold)
 
-        val model = mv.fit(trainingData)
+        val model = classifier.fit(trainingData)
 
-        val result = model.transform(testData)
+        val prediction = model.transform(testData)
 
-        result.cache()
+        val predictionCol = classifier.getPredictionCol
 
-        val predictionCol = mv.getPredictionCol
-
-        val metricsFilename = "offline_mean_variance.csv"
+        prediction.cache()
 
         Metrics.exportPrediction(
-            Metrics.getPrediction(result, labelCol, predictionCol),
+            Metrics.getPrediction(prediction, labelCol, predictionCol),
             outputMetricsPath + metricsFilename,
             "csv"
         )
 
-        result.unpersist()
+        prediction.unpersist()
 
         spark.stop()
     }

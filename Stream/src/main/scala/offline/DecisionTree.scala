@@ -44,47 +44,42 @@ object DecisionTree {
         val featurizedData = GTA.featurize(inputData, featuresCol)
         val splitData = featurizedData.randomSplit(Array(0.7, 0.3))
 
-        val (trainingData, testData) = pcaK match {
+        val (trainingData, testData, metricsFilename) = pcaK match {
             case Some(pcaK) => {
-                val featurizedTrainingData = splitData(0)
-                val featurizedTestData = splitData(1)
-
                 val pca = new PCA()
                     .setInputCol(featuresCol)
                     .setOutputCol(pcaFeaturesCol)
                     .setK(pcaK)
-                    .fit(featurizedData)
+                    .fit(splitData(0))
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(splitData(0)), pca.transform(splitData(1)))
+                (pca.transform(splitData(0)), pca.transform(splitData(1)), "offline_decision_tree_pca.csv")
             }
-            case None => (splitData(0), splitData(1))
+            case None => (splitData(0), splitData(1), "offline_decision_tree.csv")
         }
 
-        val dt = new DecisionTreeClassifier()
+        val classifier = new DecisionTreeClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             .setMaxDepth(maxDepth)
             .setImpurity(impurity)
 
-        val model = dt.fit(trainingData)
+        val model = classifier.fit(trainingData)
 
-        val result = model.transform(testData)
+        val prediction = model.transform(testData)
 
-        result.cache()
+        val predictionCol = classifier.getPredictionCol
 
-        val predictionCol = dt.getPredictionCol
-
-        val metricsFilename = "offline_decision_tree.csv"
+        prediction.cache()
 
         Metrics.exportPrediction(
-            Metrics.getPrediction(result, labelCol, predictionCol),
+            Metrics.getPrediction(prediction, labelCol, predictionCol),
             outputMetricsPath + metricsFilename,
             "csv"
         )
 
-        result.unpersist()
+        prediction.unpersist()
 
         spark.stop()
     }

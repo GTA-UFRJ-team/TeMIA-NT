@@ -16,14 +16,14 @@ object RandomForest {
         val labelCol = "label"
 
         val pcaFeaturesCol = "pcaFeatures"
-        val indexedFeaturesCol = "indexedFeatures"
+        //val indexedFeaturesCol = "indexedFeatures"
         var featuresCol = "features"
 
         val schema = GTA.getSchema
 
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
-        if (args.length < 9) {
+        if (args.length < 8) {
             println("Missing parameters")
             sys.exit(1)
         }
@@ -36,9 +36,9 @@ object RandomForest {
         val numTrees = args(5).toInt
         val impurity = args(6)
         val maxDepth = args(7).toInt
-        val maxCategories = args(8).toInt
+        //val maxCategories = args(8).toInt
         val pcaK: Option[Int] = try {
-            Some(args(9).toInt)
+            Some(args(8).toInt)
         } catch {
             case e: Exception => None
         }
@@ -55,11 +55,11 @@ object RandomForest {
             .schema(schema)
             .csv(inputTestPath)
 
-        val (trainingData, testData) = pcaK match {
-            case Some(pcaK) => {
-                val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-                val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
+        val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
+        val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
 
+        val (trainingData, testData, metricsFilename) = pcaK match {
+            case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
                     .setOutputCol(pcaFeaturesCol)
@@ -68,34 +68,29 @@ object RandomForest {
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData))
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "online_random_forest_pca.csv")
             }
-            case None => (GTA.featurize(inputTrainingData, featuresCol), GTA.featurize(inputTestDataStream, featuresCol))
+            case None => (featurizedTrainingData, featurizedTestData, "online_random_forest.csv")
         }
 
-        val fi = new VectorIndexer()
-            .setInputCol(featuresCol)
-            .setOutputCol(indexedFeaturesCol)
-            .setMaxCategories(maxCategories)
-            .fit(trainingData)
-
-        val rf = new RandomForestClassifier()
+        val classifier = new RandomForestClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             .setNumTrees(numTrees)
             .setImpurity(impurity)
             .setMaxDepth(maxDepth)
 
-        val pl = new Pipeline()
-            .setStages(Array(fi, rf))
+        // TODO: add a vector indexer to this pipeline
+        val pipeline = new Pipeline()
+            .setStages(Array(classifier))
 
-        val model = pl.fit(trainingData)
+        val model = pipeline.fit(trainingData)
 
-        val result = model.transform(testData)
+        val prediction = model.transform(testData)
 
-        val predictionCol = rf.getPredictionCol
+        val predictionCol = classifier.getPredictionCol
 
-        val outputDataStream = result.select(result(labelCol), result(predictionCol)).writeStream
+        val outputDataStream = prediction.select(prediction(labelCol), prediction(predictionCol)).writeStream
             .outputMode("append")
             .option("checkpointLocation", outputPath + "checkpoints/")
             .format("csv")
@@ -109,8 +104,6 @@ object RandomForest {
             .option("header", false)
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
             .csv(outputPath + "*.csv")
-
-        val metricsFilename = "online_random_forest.csv"
 
         Metrics.exportPrediction(
             Metrics.getPrediction(inputResultData, labelCol, predictionCol),

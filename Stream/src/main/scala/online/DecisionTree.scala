@@ -51,11 +51,11 @@ object DecisionTree {
             .schema(schema)
             .csv(inputTestPath)
 
-        val (trainingData, testData) = pcaK match {
-            case Some(pcaK) => {
-                val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-                val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
+        val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
+        val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
 
+        val (trainingData, testData, metricsFilename) = pcaK match {
+            case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
                     .setOutputCol(pcaFeaturesCol)
@@ -64,24 +64,24 @@ object DecisionTree {
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData))
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "online_decision_tree_pca.csv")
             }
-            case None => (GTA.featurize(inputTrainingData, featuresCol), GTA.featurize(inputTestDataStream, featuresCol))
+            case None => (featurizedTrainingData, featurizedTestData, "online_decision_tree.csv")
         }
 
-        val dt = new DecisionTreeClassifier()
+        val classifier = new DecisionTreeClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
-            .setMaxDepth(maxDepth)
             .setImpurity(impurity)
+            .setMaxDepth(maxDepth)
 
-        val model = dt.fit(trainingData)
+        val model = classifier.fit(trainingData)
 
-        val result = model.transform(testData)
+        val prediction = model.transform(testData)
 
-        val predictionCol = dt.getPredictionCol
+        val predictionCol = classifier.getPredictionCol
 
-        val outputDataStream = result.select(result(labelCol), result(predictionCol)).writeStream
+        val outputDataStream = prediction.select(prediction(labelCol), prediction(predictionCol)).writeStream
             .outputMode("append")
             .option("checkpointLocation", outputPath + "checkpoints/")
             .format("csv")
@@ -95,8 +95,6 @@ object DecisionTree {
             .option("header", false)
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
             .csv(outputPath + "*.csv")
-
-        val metricsFilename = "online_decision_tree.csv"
 
         Metrics.exportPrediction(
             Metrics.getPrediction(inputResultData, labelCol, predictionCol),

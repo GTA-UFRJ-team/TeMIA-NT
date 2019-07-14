@@ -45,48 +45,43 @@ object LogisticRegression {
         val featurizedData = GTA.featurize(inputData, featuresCol)
         val splitData = featurizedData.randomSplit(Array(0.7, 0.3))
 
-        val (trainingData, testData) = pcaK match {
+        val (trainingData, testData, metricsFilename) = pcaK match {
             case Some(pcaK) => {
-                val featurizedTrainingData = splitData(0)
-                val featurizedTestData = splitData(1)
-
                 val pca = new PCA()
                     .setInputCol(featuresCol)
                     .setOutputCol(pcaFeaturesCol)
                     .setK(pcaK)
-                    .fit(featurizedData)
+                    .fit(splitData(0))
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(splitData(0)), pca.transform(splitData(1)))
+                (pca.transform(splitData(0)), pca.transform(splitData(1)), "offline_logistic_regression_pca.csv")
             }
-            case None => (splitData(0), splitData(1))
+            case None => (splitData(0), splitData(1), "offline_logistic_regression.csv")
         }
 
-        val lr = new LogisticRegressionClassifier()
+        val classifier = new LogisticRegressionClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             .setRegParam(regParam)
             .setElasticNetParam(elasticNetParam)
             .setMaxIter(maxIter)
 
-        val model = lr.fit(trainingData)
+        val model = classifier.fit(trainingData)
 
-        val result = model.transform(testData)
+        val prediction = model.transform(testData)
 
-        result.cache()
+        val predictionCol = classifier.getPredictionCol
 
-        val predictionCol = lr.getPredictionCol
-
-        val metricsFilename = "offline_logistic_regression.csv"
+        prediction.cache()
 
         Metrics.exportPrediction(
-            Metrics.getPrediction(result, labelCol, predictionCol),
+            Metrics.getPrediction(prediction, labelCol, predictionCol),
             outputMetricsPath + metricsFilename,
             "csv"
         )
 
-        result.unpersist()
+        prediction.unpersist()
 
         spark.stop()
     }

@@ -52,11 +52,11 @@ object LogisticRegression {
             .schema(schema)
             .csv(inputTestPath)
 
-        val (trainingData, testData) = pcaK match {
-            case Some(pcaK) => {
-                val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-                val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
+        val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
+        val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
 
+        val (trainingData, testData, metricsFilename) = pcaK match {
+            case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
                     .setOutputCol(pcaFeaturesCol)
@@ -65,25 +65,25 @@ object LogisticRegression {
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData))
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "online_logistic_regression_pca.csv")
             }
-            case None => (GTA.featurize(inputTrainingData, featuresCol), GTA.featurize(inputTestDataStream, featuresCol))
+            case None => (featurizedTrainingData, featurizedTestData, "online_logistic_regression.csv")
         }
 
-        val lr = new LogisticRegressionClassifier()
+        val classifier = new LogisticRegressionClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             .setRegParam(regParam)
             .setElasticNetParam(elasticNetParam)
             .setMaxIter(maxIter)
 
-        val model = lr.fit(trainingData)
+        val model = classifier.fit(trainingData)
 
-        val result = model.transform(testData)
+        val prediction = model.transform(testData)
 
-        val predictionCol = lr.getPredictionCol
+        val predictionCol = classifier.getPredictionCol
 
-        val outputDataStream = result.select(result(labelCol), result(predictionCol)).writeStream
+        val outputDataStream = prediction.select(prediction(labelCol), prediction(predictionCol)).writeStream
             .outputMode("append")
             .option("checkpointLocation", outputPath + "checkpoints/")
             .format("csv")
@@ -97,8 +97,6 @@ object LogisticRegression {
             .option("header", false)
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
             .csv(outputPath + "*.csv")
-
-        val metricsFilename = "online_logistic_regression.csv"
 
         Metrics.exportPrediction(
             Metrics.getPrediction(inputResultData, labelCol, predictionCol),

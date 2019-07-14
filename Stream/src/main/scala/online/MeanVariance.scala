@@ -50,35 +50,36 @@ object MeanVariance {
             .schema(schema)
             .csv(inputTestPath)
 
-        val (trainingData, testData) = pcaK match {
-            case Some(pcaK) => {
-                val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-                val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
+        val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
+        val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
 
+        val (trainingData, testData, metricsFilename) = pcaK match {
+            case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
                     .setOutputCol(pcaFeaturesCol)
                     .setK(pcaK)
+                    .fit(featurizedTrainingData)
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.fit(featurizedTrainingData).transform(featurizedTrainingData), pca.fit(featurizedTrainingData).transform(featurizedTestData))
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "online_mean_variance_pca.csv")
             }
-            case None => (GTA.featurize(inputTrainingData, featuresCol), GTA.featurize(inputTestDataStream, featuresCol))
+            case None => (featurizedTrainingData, featurizedTestData, "online_mean_variance.csv")
         }
 
-        val mv = new MeanVarianceClassifier()
+        val classifier = new MeanVarianceClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             .setThreshold(threshold)
 
-        val model = mv.fit(trainingData)
+        val model = classifier.fit(trainingData)
 
-        val result = model.transform(testData)
+        val prediction = model.transform(testData)
 
-        val predictionCol = mv.getPredictionCol
+        val predictionCol = classifier.getPredictionCol
 
-        val outputDataStream = result.select(result(labelCol), result(predictionCol)).writeStream
+        val outputDataStream = prediction.select(prediction(labelCol), prediction(predictionCol)).writeStream
             .outputMode("append")
             .option("checkpointLocation", outputPath + "checkpoints/")
             .format("csv")
@@ -92,8 +93,6 @@ object MeanVariance {
             .option("header", false)
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
             .csv(outputPath + "*.csv")
-
-        val metricsFilename = "online_mean_variance.csv"
 
         Metrics.exportPrediction(
             Metrics.getPrediction(inputResultData, labelCol, predictionCol),

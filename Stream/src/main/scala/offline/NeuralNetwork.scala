@@ -29,10 +29,10 @@ object NeuralNetwork {
 
         val inputFile = args(0)
         val outputMetricsPath = File.appendSlash(args(1))
-        val layers = args(2).split(',').map(l => l.toInt)
-	    val maxIter = args(3).toInt
-        val numSims = args(4).toInt
-        val numCores = args(5).toInt
+        val numSims = args(2).toInt
+        val numCores = args(3).toInt
+        val layers = args(4).split(',').map(l => l.toInt)
+	    val maxIter = args(5).toInt
         val pcaK: Option[Int] = try {
             Some(args(6).toInt)
         } catch {
@@ -46,13 +46,13 @@ object NeuralNetwork {
             .csv(inputFile)
 
         val featurizedData = GTA.featurize(inputData, featuresCol)
-        
+
         var metricsFilename = "offline_neural_network_pca.csv"
         var header: Iterable[_] = new ArrayBuffer()
-        
+
         var ns = 0
         val metrics = new ArrayBuffer[Iterable[_]]()
-        
+
         while (ns < numSims) {
             val splitData = featurizedData.randomSplit(Array(0.7, 0.3))
 
@@ -84,7 +84,7 @@ object NeuralNetwork {
             val model = classifier.fit(trainingData)
 
             val trainingTime = (System.currentTimeMillis() - startTime) / 1000.0
-            
+
             startTime = System.currentTimeMillis()
 
             val prediction = model.transform(testData)
@@ -94,9 +94,9 @@ object NeuralNetwork {
             prediction.cache()
 
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
-            
+
             val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)
- 
+
             header = metricsTmp.keys
 
             metrics += metricsTmp.values
@@ -104,7 +104,7 @@ object NeuralNetwork {
             prediction.unpersist()
             ns += 1
         }
-       
+
         File.exportCSV(outputMetricsPath + metricsFilename, header, metrics)
 
         spark.stop()

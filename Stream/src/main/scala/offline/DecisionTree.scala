@@ -29,10 +29,10 @@ object DecisionTree {
 
         val inputFile = args(0)
         val outputMetricsPath = File.appendSlash(args(1))
-        val impurity = args(2)
-        val maxDepth = args(3).toInt
-        val numSims = args(4).toInt
-        val numCores = args(5).toInt
+        val numSims = args(2).toInt
+        val numCores = args(3).toInt
+        val impurity = args(4)
+        val maxDepth = args(5).toInt
         val pcaK: Option[Int] = try {
             Some(args(6).toInt)
         } catch {
@@ -46,10 +46,10 @@ object DecisionTree {
             .csv(inputFile)
 
         val featurizedData = GTA.featurize(inputData, featuresCol)
-        
+
         var metricsFilename = "offline_decision_tree.csv"
         var header: Iterable[_] = new ArrayBuffer()
-        
+
         var ns = 0
         val metrics = new ArrayBuffer[Iterable[_]]()
 
@@ -84,27 +84,27 @@ object DecisionTree {
             val model = classifier.fit(trainingData)
 
             val trainingTime = (System.currentTimeMillis() - startTime) / 1000.0
-            
+
             startTime = System.currentTimeMillis()
-            
+
             val prediction = model.transform(testData)
 
             val predictionCol = classifier.getPredictionCol
 
             prediction.cache()
-            
+
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
-            
+
             val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)
 
             header = metricsTmp.keys
 
             metrics += metricsTmp.values
-            
+
             prediction.unpersist()
             ns += 1
         }
-        
+
         File.exportCSV(outputMetricsPath + metricsFilename, header, metrics)
 
         spark.stop()

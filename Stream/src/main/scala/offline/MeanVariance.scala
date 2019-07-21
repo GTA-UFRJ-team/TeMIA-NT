@@ -30,9 +30,9 @@ object MeanVariance {
         val inputTrainingFile = args(0)
         val inputTestFile = args(1)
         val outputMetricsPath = File.appendSlash(args(2))
-        val threshold = args(3).toDouble
-        val numSims = args(4).toInt
-        val numCores = args(5).toInt
+        val numSims = args(3).toInt
+        val numCores = args(4).toInt
+        val threshold = args(5).toDouble
         val pcaK: Option[Int] = try {
             Some(args(6).toInt)
         } catch {
@@ -52,13 +52,13 @@ object MeanVariance {
             .csv(inputTestFile)
 
         val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-        
+
         var metricsFilename = "offline_mean_variance.csv"
         var header: Iterable[_] = new ArrayBuffer()
-        
+
         var ns = 0
         val metrics = new ArrayBuffer[Iterable[_]]()
-        
+
         while (ns < numSims) {
             val featurizedTestData = GTA.featurize(inputTestData, featuresCol).randomSplit(Array(0.7, 0.3))(1)
 
@@ -89,7 +89,7 @@ object MeanVariance {
             val model = classifier.fit(trainingData)
 
             val trainingTime = (System.currentTimeMillis() - startTime) / 1000.0
-            
+
             startTime = System.currentTimeMillis()
 
             val prediction = model.transform(testData)
@@ -97,9 +97,9 @@ object MeanVariance {
             val predictionCol = classifier.getPredictionCol
 
             prediction.cache()
- 
+
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
-                       
+
             val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)
 
             header = metricsTmp.keys

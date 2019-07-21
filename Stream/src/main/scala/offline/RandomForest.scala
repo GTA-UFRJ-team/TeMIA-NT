@@ -31,11 +31,11 @@ object RandomForest {
 
         val inputFile = args(0)
         val outputMetricsPath = File.appendSlash(args(1))
-        val numTrees = args(2).toInt
-        val impurity = args(3)
-        val maxDepth = args(4).toInt
-        val numSims = args(5).toInt
-        val numCores = args(6).toInt
+        val numSims = args(2).toInt
+        val numCores = args(3).toInt
+        val numTrees = args(4).toInt
+        val impurity = args(5)
+        val maxDepth = args(6).toInt
         //val maxCategories = args(5).toInt
         val pcaK: Option[Int] = try {
             Some(args(7).toInt)
@@ -50,13 +50,13 @@ object RandomForest {
             .csv(inputFile)
 
         val featurizedData = GTA.featurize(inputData, featuresCol)
-        
+
         var metricsFilename = "offline_random_forest.csv"
         var header: Iterable[_] = new ArrayBuffer()
-        
+
         var ns = 0
         val metrics = new ArrayBuffer[Iterable[_]]()
-        
+
         while (ns < numSims) {
             val splitData = featurizedData.randomSplit(Array(0.7, 0.3))
 
@@ -71,7 +71,7 @@ object RandomForest {
                         .fit(splitData(0))
 
                     featuresCol = pcaFeaturesCol
-                    
+
                     metricsFilename = "offline_random_forest_pca.csv"
 
                     (pca.transform(splitData(0)), pca.transform(splitData(1)))
@@ -93,7 +93,7 @@ object RandomForest {
             val model = pipeline.fit(trainingData)
 
             val trainingTime = (System.currentTimeMillis() - startTime) / 1000.0
-            
+
             startTime = System.currentTimeMillis()
 
             val prediction = model.transform(testData)
@@ -103,9 +103,9 @@ object RandomForest {
             prediction.cache()
 
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
-            
+
             val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)
- 
+
             header = metricsTmp.keys
 
             metrics += metricsTmp.values
@@ -113,7 +113,7 @@ object RandomForest {
             prediction.unpersist()
             ns += 1
         }
-       
+
         File.exportCSV(outputMetricsPath + metricsFilename, header, metrics)
 
         spark.stop()

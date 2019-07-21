@@ -29,11 +29,11 @@ object LogisticRegression {
 
         val inputFile = args(0)
         val outputMetricsPath = File.appendSlash(args(1))
-        val regParam = args(2).toDouble
-	    val elasticNetParam = args(3).toDouble
-	    val maxIter = args(4).toInt
-        val numSims = args(5).toInt
-        val numCores = args(6).toInt
+        val numSims = args(2).toInt
+        val numCores = args(3).toInt
+        val regParam = args(4).toDouble
+	    val elasticNetParam = args(5).toDouble
+	    val maxIter = args(6).toInt
         val pcaK: Option[Int] = try {
             Some(args(7).toInt)
         } catch {

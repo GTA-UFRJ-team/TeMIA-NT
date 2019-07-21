@@ -8,7 +8,9 @@ Por enquanto, os modelos de treinamento (e as classificações) são construído
 
 Para rodar as simulações, basta enviar ao nó *master* do Spark o *Object* correspondente ao algoritmo desejado.
 
-`spark-submit --master <master> --class offline.<object> <parâmetros>`
+`spark-submit --master <master> --class offline.<object> <arquivo jar> <parâmetros>`
+
+O arquivo *jar* do código a ser utilizado pelo Spark pode ser gerado pela ferramenta [Scala Build Tool](https://www.scala-sbt.org/) (SBT). Para isso, basta acessar o diretório do projeto, e executar o comando `sbt`. O ambiente dessa ferramenta será carregado e, para gerar o arquivo *jar*, deve-se executar o comando `package` dentro desse ambiente.
 
 Os métodos de aprendizado de máquina já são implementados pela *library* `mllib` do Spark, onde apenas alguns parâmetros de cada método são utilizados.
 

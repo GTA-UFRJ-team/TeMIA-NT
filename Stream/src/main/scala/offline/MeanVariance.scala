@@ -1,5 +1,7 @@
 package offline
 
+import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.ml.feature.PCA
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
@@ -20,7 +22,7 @@ object MeanVariance {
 
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
-        if (args.length < 4) {
+        if (args.length < 6) {
             println("Missing parameters")
             sys.exit(1)
         }
@@ -29,8 +31,10 @@ object MeanVariance {
         val inputTestFile = args(1)
         val outputMetricsPath = File.appendSlash(args(2))
         val threshold = args(3).toDouble
+        val numSims = args(4).toInt
+        val numCores = args(5).toInt
         val pcaK: Option[Int] = try {
-            Some(args(4).toInt)
+            Some(args(6).toInt)
         } catch {
             case e: Exception => None
         }
@@ -48,43 +52,65 @@ object MeanVariance {
             .csv(inputTestFile)
 
         val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-        val featurizedTestData = GTA.featurize(inputTestData, featuresCol).randomSplit(Array(0.7, 0.3))(1)
+        
+        var metricsFilename = "offline_mean_variance.csv"
+        var header: Iterable[_] = new ArrayBuffer()
+        
+        var ns = 0
+        val metrics = new ArrayBuffer[Iterable[_]]()
+        
+        while (ns < numSims) {
+            val featurizedTestData = GTA.featurize(inputTestData, featuresCol).randomSplit(Array(0.7, 0.3))(1)
 
-        val (trainingData, testData, metricsFilename) = pcaK match {
-            case Some(pcaK) => {
-                val pca = new PCA()
-                    .setInputCol(featuresCol)
-                    .setOutputCol(pcaFeaturesCol)
-                    .setK(pcaK)
-                    .fit(featurizedTrainingData)
+            var startTime = System.currentTimeMillis()
 
-                featuresCol = pcaFeaturesCol
+            val (trainingData, testData) = pcaK match {
+                case Some(pcaK) => {
+                    val pca = new PCA()
+                        .setInputCol(featuresCol)
+                        .setOutputCol(pcaFeaturesCol)
+                        .setK(pcaK)
+                        .fit(featurizedTrainingData)
 
-                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "offline_mean_variance_pca.csv")
+                    featuresCol = pcaFeaturesCol
+
+                    metricsFilename = "offline_mean_variance_pca.csv"
+
+                    (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData))
+                }
+                case None => (featurizedTrainingData, featurizedTestData)
             }
-            case None => (featurizedTrainingData, featurizedTestData, "offline_mean_variance.csv")
+
+            val classifier = new MeanVarianceClassifier()
+                .setFeaturesCol(featuresCol)
+                .setLabelCol(labelCol)
+                .setThreshold(threshold)
+
+            val model = classifier.fit(trainingData)
+
+            val trainingTime = (System.currentTimeMillis() - startTime) / 1000.0
+            
+            startTime = System.currentTimeMillis()
+
+            val prediction = model.transform(testData)
+
+            val predictionCol = classifier.getPredictionCol
+
+            prediction.cache()
+ 
+            val testTime = (System.currentTimeMillis() - startTime) / 1000.0
+                       
+            val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)
+
+            header = metricsTmp.keys
+
+            metrics += metricsTmp.values
+
+            prediction.unpersist()
+            ns += 1
         }
 
-        val classifier = new MeanVarianceClassifier()
-            .setFeaturesCol(featuresCol)
-            .setLabelCol(labelCol)
-            .setThreshold(threshold)
-
-        val model = classifier.fit(trainingData)
-
-        val prediction = model.transform(testData)
-
-        val predictionCol = classifier.getPredictionCol
-
-        prediction.cache()
-
-        Metrics.exportPrediction(
-            Metrics.getPrediction(prediction, labelCol, predictionCol),
-            outputMetricsPath + metricsFilename,
-            "csv"
-        )
-
-        prediction.unpersist()
+        File.exportCSV(outputMetricsPath + metricsFilename, header, metrics)
 
         spark.stop()
     }

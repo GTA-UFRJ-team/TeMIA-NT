@@ -1,5 +1,7 @@
 package offline
 
+import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.feature.{PCA, VectorIndexer}
 import org.apache.spark.ml.Pipeline
@@ -22,7 +24,7 @@ object RandomForest {
 
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
-        if (args.length < 5) {
+        if (args.length < 7) {
             println("Missing parameters")
             sys.exit(1)
         }
@@ -32,9 +34,11 @@ object RandomForest {
         val numTrees = args(2).toInt
         val impurity = args(3)
         val maxDepth = args(4).toInt
+        val numSims = args(5).toInt
+        val numCores = args(6).toInt
         //val maxCategories = args(5).toInt
         val pcaK: Option[Int] = try {
-            Some(args(5).toInt)
+            Some(args(7).toInt)
         } catch {
             case e: Exception => None
         }
@@ -46,49 +50,71 @@ object RandomForest {
             .csv(inputFile)
 
         val featurizedData = GTA.featurize(inputData, featuresCol)
-        val splitData = featurizedData.randomSplit(Array(0.7, 0.3))
+        
+        var metricsFilename = "offline_random_forest.csv"
+        var header: Iterable[_] = new ArrayBuffer()
+        
+        var ns = 0
+        val metrics = new ArrayBuffer[Iterable[_]]()
+        
+        while (ns < numSims) {
+            val splitData = featurizedData.randomSplit(Array(0.7, 0.3))
 
-        val (trainingData, testData, metricsFilename) = pcaK match {
-            case Some(pcaK) => {
-                val pca = new PCA()
-                    .setInputCol(featuresCol)
-                    .setOutputCol(pcaFeaturesCol)
-                    .setK(pcaK)
-                    .fit(splitData(0))
+            var startTime = System.currentTimeMillis()
 
-                featuresCol = pcaFeaturesCol
+            val (trainingData, testData) = pcaK match {
+                case Some(pcaK) => {
+                    val pca = new PCA()
+                        .setInputCol(featuresCol)
+                        .setOutputCol(pcaFeaturesCol)
+                        .setK(pcaK)
+                        .fit(splitData(0))
 
-                (pca.transform(splitData(0)), pca.transform(splitData(1)), "offline_random_forest_pca.csv")
+                    featuresCol = pcaFeaturesCol
+                    
+                    metricsFilename = "offline_random_forest_pca.csv"
+
+                    (pca.transform(splitData(0)), pca.transform(splitData(1)))
+                }
+                case None => (splitData(0), splitData(1))
             }
-            case None => (splitData(0), splitData(1), "offline_random_forest.csv")
+
+            val classifier = new RandomForestClassifier()
+                .setFeaturesCol(featuresCol)
+                .setLabelCol(labelCol)
+                .setNumTrees(numTrees)
+                .setImpurity(impurity)
+                .setMaxDepth(maxDepth)
+
+            // TODO: add a vector indexer to this pipeline
+            val pipeline = new Pipeline()
+                .setStages(Array(classifier))
+
+            val model = pipeline.fit(trainingData)
+
+            val trainingTime = (System.currentTimeMillis() - startTime) / 1000.0
+            
+            startTime = System.currentTimeMillis()
+
+            val prediction = model.transform(testData)
+
+            val predictionCol = classifier.getPredictionCol
+
+            prediction.cache()
+
+            val testTime = (System.currentTimeMillis() - startTime) / 1000.0
+            
+            val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)
+ 
+            header = metricsTmp.keys
+
+            metrics += metricsTmp.values
+
+            prediction.unpersist()
+            ns += 1
         }
-
-        val classifier = new RandomForestClassifier()
-            .setFeaturesCol(featuresCol)
-            .setLabelCol(labelCol)
-            .setNumTrees(numTrees)
-            .setImpurity(impurity)
-            .setMaxDepth(maxDepth)
-
-        // TODO: add a vector indexer to this pipeline
-        val pipeline = new Pipeline()
-            .setStages(Array(classifier))
-
-        val model = pipeline.fit(trainingData)
-
-        val prediction = model.transform(testData)
-
-        val predictionCol = classifier.getPredictionCol
-
-        prediction.cache()
-
-        Metrics.exportPrediction(
-            Metrics.getPrediction(prediction, labelCol, predictionCol),
-            outputMetricsPath + metricsFilename,
-            "csv"
-        )
-
-        prediction.unpersist()
+       
+        File.exportCSV(outputMetricsPath + metricsFilename, header, metrics)
 
         spark.stop()
     }

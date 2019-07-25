@@ -93,6 +93,9 @@ object SupportVectorMachine {
 
             prediction.cache()
 
+            // Perform an action to accurately measure the test time
+            prediction.count()
+
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
 
             val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)

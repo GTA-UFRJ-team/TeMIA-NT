@@ -16,7 +16,8 @@ object NeuralNetwork {
         val labelCol = "label"
 
         val pcaFeaturesCol = "pcaFeatures"
-        var featuresCol = "features"
+        val defaultFeaturesCol = "features"
+        var featuresCol = defaultFeaturesCol
 
         val schema = GTA.getSchema
 
@@ -61,7 +62,7 @@ object NeuralNetwork {
             val (trainingData, testData) = pcaK match {
                 case Some(pcaK) => {
                     val pca = new PCA()
-                        .setInputCol(featuresCol)
+                        .setInputCol(defaultFeaturesCol)
                         .setOutputCol(pcaFeaturesCol)
                         .setK(pcaK)
                         .fit(splitData(0))

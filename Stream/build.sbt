@@ -9,5 +9,6 @@ lazy val stream = (project in file("."))
         name := "Stream",
         libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
         libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-        libraryDependencies += "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided"
+        libraryDependencies += "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
+        libraryDependencies += "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion
     )

@@ -30,14 +30,24 @@ private[stream] class Config {
         }
     }
 
-    def contains(name: String): Boolean = this.properties.contains(name)
+    def contains(param: String): Boolean = this.properties.contains(param)
 
-    def get(name: String): String = this.properties(name)
+    def get(param: String): String = this.properties(param)
 
     def getAll: Map[String, String] = this.properties
+
+    def set(param: String, value: String): Config = {
+        this.properties = this.properties + (param -> value)
+
+        this
+    }
 }
 
 object Config {
+    def empty: Config = {
+        new Config()
+    }
+
     def load(filename: String, encoding: String = "utf-8", commentToken: String = "#"): Config = {
         new Config(filename, encoding, commentToken)
     }

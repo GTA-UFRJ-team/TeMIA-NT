@@ -26,6 +26,11 @@ object File {
     }
 
     @throws(classOf[Exception])
+    def getFileReader(filename: String, encoding: String): BufferedReader = {
+        new BufferedReader(new InputStreamReader(new FileInputStream(filename), encoding))
+    }
+
+    @throws(classOf[Exception])
     def getFileWriter(filename: String, encoding: String): BufferedWriter = {
         val path = File.getPathnameFromFilename(filename)
 

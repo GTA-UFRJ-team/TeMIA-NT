@@ -5,8 +5,8 @@ import org.apache.spark.sql.types._
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.linalg.Vector
 
-object GTA {
-    def getSchema(): StructType = {
+object GTA extends Schema {
+    def getSchema: StructType = {
         new StructType()
             .add("srcip", "string") // (string) The source ip address
             .add("srcport", "int") // The source port number
@@ -56,11 +56,15 @@ object GTA {
             .add("label", "int") // class label
     }
 
-    def getNumFeatures(): Int = {
+    def getLabelCol: String = {
+        "label"
+    }
+
+    def getNumFeatures: Int = {
         40
     }
 
-    def getFeaturesRange(): Range = {
+    def getFeaturesRange: Range = {
         0 until 40
     }
 

@@ -8,7 +8,8 @@ import org.apache.spark.sql.SparkSession
 
 import br.ufrj.gta.stream.classification.anomaly.MeanVarianceClassifier
 import br.ufrj.gta.stream.schema.GTA
-import br.ufrj.gta.stream.util.{File, Metrics}
+import br.ufrj.gta.stream.simulation.Metrics
+import br.ufrj.gta.stream.util.File
 
 object MeanVariance {
     def main(args: Array[String]) {
@@ -56,12 +57,9 @@ object MeanVariance {
         val featurizedTestData = GTA.featurize(inputTestData, featuresCol)
 
         var metricsFilename = "offline_mean_variance.csv"
-        var header: Iterable[_] = new ArrayBuffer()
+        var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
 
-        var ns = 0
-        val metrics = new ArrayBuffer[Iterable[_]]()
-
-        while (ns < numSims) {
+        for (i <- 0 until numSims) {
             val splitData = Array(featurizedTrainingData.randomSplit(Array(0.7, 0.3))(0), featurizedTestData.randomSplit(Array(0.7, 0.3))(1))
 
             var startTime = System.currentTimeMillis()
@@ -105,17 +103,12 @@ object MeanVariance {
 
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
 
-            val metricsTmp = Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime)
-
-            header = metricsTmp.keys
-
-            metrics += metricsTmp.values
+            metrics = metrics.add(Metrics.get(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime))
 
             prediction.unpersist()
-            ns += 1
         }
 
-        File.exportCSV(outputMetricsPath + metricsFilename, header, metrics)
+        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

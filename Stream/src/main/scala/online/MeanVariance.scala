@@ -7,7 +7,8 @@ import org.apache.spark.sql.types._
 
 import br.ufrj.gta.stream.classification.anomaly.MeanVarianceClassifier
 import br.ufrj.gta.stream.schema.GTA
-import br.ufrj.gta.stream.util.{File, Metrics}
+import br.ufrj.gta.stream.simulation.Metrics
+import br.ufrj.gta.stream.util.File
 
 object MeanVariance {
     def main(args: Array[String]) {
@@ -88,17 +89,17 @@ object MeanVariance {
 
         outputDataStream.awaitTermination(timeoutStream)
 
+        var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
+
         val inputResultData = spark.read
             .option("sep", sep)
             .option("header", false)
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
             .csv(outputPath + "*.csv")
 
-        Metrics.exportPrediction(
-            Metrics.getPrediction(inputResultData, labelCol, predictionCol),
-            outputMetricsPath + metricsFilename,
-            "csv"
-        )
+        metrics = metrics.add(Metrics.get(inputResultData, labelCol, predictionCol))
+
+        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

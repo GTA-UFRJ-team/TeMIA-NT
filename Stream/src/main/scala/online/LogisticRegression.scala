@@ -7,8 +7,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 
 import br.ufrj.gta.stream.schema.GTA
-import br.ufrj.gta.stream.simulation.Metrics
-import br.ufrj.gta.stream.util.File
+import br.ufrj.gta.stream.util.{File, Metrics}
 
 object LogisticRegression {
     def main(args: Array[String]) {
@@ -93,7 +92,7 @@ object LogisticRegression {
 
         outputDataStream.awaitTermination(timeoutStream)
 
-        var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
+        var metrics = Metrics.empty(Metrics.DefaultMetrics: _*)
 
         val inputResultData = spark.read
             .option("sep", sep)
@@ -101,7 +100,7 @@ object LogisticRegression {
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
             .csv(outputPath + "*.csv")
 
-        metrics = metrics.add(Metrics.get(inputResultData, labelCol, predictionCol))
+        metrics = metrics.add(Metrics.getPrediction(inputResultData, labelCol, predictionCol))
 
         metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
 

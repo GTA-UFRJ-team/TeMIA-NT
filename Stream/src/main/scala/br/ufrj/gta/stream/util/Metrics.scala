@@ -1,12 +1,10 @@
-package br.ufrj.gta.stream.simulation
+package br.ufrj.gta.stream.util
 
 import java.lang.Exception
 
 import org.apache.spark.sql.Dataset
 
-import br.ufrj.gta.stream.util.File
-
-private[simulation] class Metrics {
+private[stream] class Metrics {
     var metrics = Map.empty[String, Seq[Any]]
 
     def this(names: String*) = {
@@ -47,7 +45,7 @@ private[simulation] class Metrics {
 object Metrics {
     val FormatCsv = "csv"
 
-    val DefaultMetrics = List("Test cases",
+    val DefaultMetrics = Array("Test cases",
         "Real negative",
         "Real positive",
         "Predicted negative",
@@ -61,7 +59,7 @@ object Metrics {
         new Metrics(metrics: _*)
     }
 
-    def get(predictions: Dataset[_], labelCol: String, predictionCol: String): Map[String, Any] = {
+    def getPrediction(predictions: Dataset[_], labelCol: String, predictionCol: String): Map[String, Any] = {
         val size = predictions.count()
 
         val rn = predictions.where(predictions(labelCol) === 0.0).count()

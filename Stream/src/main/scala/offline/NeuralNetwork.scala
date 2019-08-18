@@ -8,8 +8,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 
 import br.ufrj.gta.stream.schema.GTA
-import br.ufrj.gta.stream.simulation.Metrics
-import br.ufrj.gta.stream.util.File
+import br.ufrj.gta.stream.util.{File, Metrics}
 
 object NeuralNetwork {
     def main(args: Array[String]) {
@@ -97,7 +96,7 @@ object NeuralNetwork {
 
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
 
-            metrics = metrics.add(Metrics.get(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime))
+            metrics = metrics.add(Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime))
 
             prediction.unpersist()
         }

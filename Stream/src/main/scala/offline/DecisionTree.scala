@@ -29,7 +29,7 @@ object DecisionTree {
         }
 
         val inputFile = args(0)
-        val outputMetricsPath = File.appendSlash(args(1))
+        val metricsFilename = args(1)
         val numSims = args(2).toInt
         val numCores = args(3).toInt
         val impurity = args(4)
@@ -48,7 +48,6 @@ object DecisionTree {
 
         val featurizedData = GTA.featurize(inputData, featuresCol)
 
-        var metricsFilename = "offline_decision_tree.csv"
         var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
 
         for (i <- 0 until numSims) {
@@ -65,8 +64,6 @@ object DecisionTree {
                         .fit(splitData(0))
 
                     featuresCol = pcaFeaturesCol
-
-                    metricsFilename = "offline_decision_tree_pca.csv"
 
                     (pca.transform(splitData(0)), pca.transform(splitData(1)))
                 }
@@ -101,7 +98,7 @@ object DecisionTree {
             prediction.unpersist()
         }
 
-        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
+        metrics.export(metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

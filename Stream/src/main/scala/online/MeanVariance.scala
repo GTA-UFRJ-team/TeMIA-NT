@@ -29,7 +29,7 @@ object MeanVariance {
         val inputTrainingFile = args(0)
         val inputTestPath = args(1)
         val outputPath = File.appendSlash(args(2))
-        val outputMetricsPath = File.appendSlash(args(3))
+        val metricsFilename = args(3)
         val timeoutStream = args(4).toLong
         val threshold = args(5).toDouble
         val pcaK: Option[Int] = try {
@@ -53,7 +53,7 @@ object MeanVariance {
         val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
         val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
 
-        val (trainingData, testData, metricsFilename) = pcaK match {
+        val (trainingData, testData) = pcaK match {
             case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
@@ -63,9 +63,9 @@ object MeanVariance {
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "online_mean_variance_pca.csv")
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData))
             }
-            case None => (featurizedTrainingData, featurizedTestData, "online_mean_variance.csv")
+            case None => (featurizedTrainingData, featurizedTestData)
         }
 
         val classifier = new MeanVarianceClassifier()
@@ -98,7 +98,7 @@ object MeanVariance {
 
         metrics = metrics.add(Metrics.getPrediction(inputResultData, labelCol, predictionCol))
 
-        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
+        metrics.export(metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

@@ -29,7 +29,7 @@ object LogisticRegression {
         val inputTrainingFile = args(0)
         val inputTestPath = args(1)
         val outputPath = File.appendSlash(args(2))
-        val outputMetricsPath = File.appendSlash(args(3))
+        val metricsFilename = args(3)
         val timeoutStream = args(4).toLong
         val regParam = args(5).toDouble
 	    val elasticNetParam = args(6).toDouble
@@ -55,7 +55,7 @@ object LogisticRegression {
         val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
         val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
 
-        val (trainingData, testData, metricsFilename) = pcaK match {
+        val (trainingData, testData) = pcaK match {
             case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
@@ -65,9 +65,9 @@ object LogisticRegression {
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "online_logistic_regression_pca.csv")
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData))
             }
-            case None => (featurizedTrainingData, featurizedTestData, "online_logistic_regression.csv")
+            case None => (featurizedTrainingData, featurizedTestData)
         }
 
         val classifier = new LogisticRegressionClassifier()
@@ -102,7 +102,7 @@ object LogisticRegression {
 
         metrics = metrics.add(Metrics.getPrediction(inputResultData, labelCol, predictionCol))
 
-        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
+        metrics.export(metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

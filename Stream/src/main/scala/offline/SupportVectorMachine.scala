@@ -29,7 +29,7 @@ object SupportVectorMachine {
         }
 
         val inputFile = args(0)
-        val outputMetricsPath = File.appendSlash(args(1))
+        val metricsFilename = args(1)
         val numSims = args(2).toInt
         val numCores = args(3).toInt
         val regParam = args(4).toDouble
@@ -48,7 +48,6 @@ object SupportVectorMachine {
 
         val featurizedData = GTA.featurize(inputData, featuresCol)
 
-        var metricsFilename = "offline_support_vector_machine.csv"
         var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
 
         for (i <- 0 until numSims) {
@@ -65,8 +64,6 @@ object SupportVectorMachine {
                         .fit(splitData(0))
 
                     featuresCol = pcaFeaturesCol
-
-                    metricsFilename = "offline_support_vector_machine_pca.csv"
 
                     (pca.transform(splitData(0)), pca.transform(splitData(1)))
                 }
@@ -101,7 +98,7 @@ object SupportVectorMachine {
             prediction.unpersist()
         }
 
-        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
+        metrics.export(metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

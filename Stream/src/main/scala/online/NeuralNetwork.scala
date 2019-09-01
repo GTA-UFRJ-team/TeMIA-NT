@@ -29,7 +29,7 @@ object NeuralNetwork {
         val inputTrainingFile = args(0)
         val inputTestPath = args(1)
         val outputPath = File.appendSlash(args(2))
-        val outputMetricsPath = File.appendSlash(args(3))
+        val metricsFilename = args(3)
         val timeoutStream = args(4).toLong
         val layers = args(5).split(',').map(l => l.toInt)
         val maxIter = args(6).toInt
@@ -54,7 +54,7 @@ object NeuralNetwork {
         val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
         val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
 
-        val (trainingData, testData, metricsFilename) = pcaK match {
+        val (trainingData, testData) = pcaK match {
             case Some(pcaK) => {
                 val pca = new PCA()
                     .setInputCol(featuresCol)
@@ -64,9 +64,9 @@ object NeuralNetwork {
 
                 featuresCol = pcaFeaturesCol
 
-                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData), "online_neural_network_pca.csv")
+                (pca.transform(featurizedTrainingData), pca.transform(featurizedTestData))
             }
-            case None => (featurizedTrainingData, featurizedTestData, "online_neural_network.csv")
+            case None => (featurizedTrainingData, featurizedTestData)
         }
 
         val classifier = new MultilayerPerceptronClassifier()
@@ -100,7 +100,7 @@ object NeuralNetwork {
 
         metrics = metrics.add(Metrics.getPrediction(inputResultData, labelCol, predictionCol))
 
-        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
+        metrics.export(metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

@@ -25,7 +25,7 @@ Parâmetros:
 Tipo | Descrição |
 | :---: | :--- |
 | `File` | Arquivo CSV do dataset para treino e validação |
-| `Path` | Diretório para conter o CSV com as métricas calculadas |
+| `File` | Arquivo CSV que conterá as métricas calculadas |
 | `Integer` | Número de simulações |
 | `Integer` | Número de núcleos de processamento utilizados para a simulação |
 | `String` | Critério usado para cálculo do ganho de informação. Aceita "gini" ou "entropy" |
@@ -41,7 +41,7 @@ Parâmetros:
 Tipo | Descrição |
 | :---: | :--- |
 | `File` | Arquivo CSV do dataset para treino e validação |
-| `Path` | Diretório para conter o CSV com as métricas calculadas |
+| `File` | Arquivo CSV que conterá as métricas calculadas |
 | `Integer` | Número de simulações |
 | `Integer` | Número de núcleos de processamento utilizados para a simulação |
 | `Integer` | Número de árvores para treinar (>= 1) |
@@ -58,7 +58,7 @@ Parâmetros:
 Tipo | Descrição |
 | :---: | :--- |
 | `File` | Arquivo CSV do dataset para treino e validação |
-| `Path` | Diretório para conter o CSV com as métricas calculadas |
+| `File` | Arquivo CSV que conterá as métricas calculadas |
 | `Integer` | Número de simulações |
 | `Integer` | Número de núcleos de processamento utilizados para a simulação |
 | `String` | Tamanho de cada camada da rede neural, incluindo as camadas de entrada e saída. A *String* precisa ser um conjunto de números inteiros separados por vírgula |
@@ -74,7 +74,7 @@ Parâmetros:
 Tipo | Descrição |
 | :---: | :--- |
 | `File` | Arquivo CSV do dataset para treino e validação |
-| `Path` | Diretório para conter o CSV com as métricas calculadas |
+| `File` | Arquivo CSV que conterá as métricas calculadas |
 | `Integer` | Número de simulações |
 | `Integer` | Número de núcleos de processamento utilizados para a simulação |
 | `Double` | Parâmetro de regularização (>= 0) |
@@ -91,7 +91,7 @@ Parâmetros:
 Tipo | Descrição |
 | :---: | :--- |
 | `File` | Arquivo CSV do dataset para treino e validação |
-| `Path` | Diretório para conter o CSV com as métricas calculadas |
+| `File` | Arquivo CSV que conterá as métricas calculadas |
 | `Integer` | Número de simulações |
 | `Integer` | Número de núcleos de processamento utilizados para a simulação |
 | `Double` | Parâmetro de regularização (>= 0) |
@@ -108,7 +108,7 @@ Tipo | Descrição |
 | :---: | :--- |
 | `File` | Arquivo CSV do dataset para treino |
 | `File` | Arquivo CSV do dataset para validação |
-| `Path` | Diretório para conter o CSV com as métricas calculadas |
+| `File` | Arquivo CSV que conterá as métricas calculadas |
 | `Integer` | Número de simulações |
 | `Integer` | Número de núcleos de processamento utilizados para a simulação |
 | `Double` | Limiar aplicado à variância para definir os limites inferior e superior de caracterização de um fluxo como legítimo |

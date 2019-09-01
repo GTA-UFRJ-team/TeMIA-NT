@@ -30,7 +30,7 @@ object MeanVariance {
 
         val inputTrainingFile = args(0)
         val inputTestFile = args(1)
-        val outputMetricsPath = File.appendSlash(args(2))
+        val metricsFilename = args(2)
         val numSims = args(3).toInt
         val numCores = args(4).toInt
         val threshold = args(5).toDouble
@@ -55,7 +55,6 @@ object MeanVariance {
         val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
         val featurizedTestData = GTA.featurize(inputTestData, featuresCol)
 
-        var metricsFilename = "offline_mean_variance.csv"
         var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
 
         for (i <- 0 until numSims) {
@@ -72,8 +71,6 @@ object MeanVariance {
                         .fit(splitData(0))
 
                     featuresCol = pcaFeaturesCol
-
-                    metricsFilename = "offline_mean_variance_pca.csv"
 
                     (pca.transform(splitData(0)), pca.transform(splitData(1)))
                 }
@@ -107,7 +104,7 @@ object MeanVariance {
             prediction.unpersist()
         }
 
-        metrics.export(outputMetricsPath + metricsFilename, Metrics.FormatCsv)
+        metrics.export(metricsFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

@@ -1,6 +1,6 @@
 package br.ufrj.gta.stream.util
 
-private[stream] class Config {
+private[util] class Config {
     var properties = Map.empty[String, String]
 
     def this(filename: String, encoding: String, commentToken: String) = {

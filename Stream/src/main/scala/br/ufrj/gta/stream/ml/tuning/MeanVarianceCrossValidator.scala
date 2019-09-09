@@ -1,4 +1,4 @@
-package br.ufrj.gta.stream.tuning
+package br.ufrj.gta.stream.ml.tuning
 
 import java.lang.UnsupportedOperationException;
 
@@ -12,9 +12,9 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.types.StructType
 
-import br.ufrj.gta.stream.classification.anomaly.EntropyModel
+import br.ufrj.gta.stream.ml.classification.anomaly.MeanVarianceModel
 
-class EntropyCrossValidator (override val uid: String)
+class MeanVarianceCrossValidator (override val uid: String)
     extends CrossValidator {
 
     def this() = this(Identifiable.randomUID("mvcv"))
@@ -29,7 +29,7 @@ class EntropyCrossValidator (override val uid: String)
         throw new UnsupportedOperationException("You must call fit(trainingDataset: Dataset[_], validationDataset: Dataset[_]) instead");
     }
 
-    def fit(trainingDataset: Dataset[_], validationDataset: Dataset[_]): EntropyCrossValidatorModel = {
+    def fit(trainingDataset: Dataset[_], validationDataset: Dataset[_]): MeanVarianceCrossValidatorModel = {
         val schema = trainingDataset.schema
         val sparkSession = trainingDataset.sparkSession
         val est = $(estimator)
@@ -43,7 +43,7 @@ class EntropyCrossValidator (override val uid: String)
             val validationDF = sparkSession.createDataFrame(validation, schema).cache()
 
             val foldMetrics = epm.zipWithIndex.map { case (paramMap, paramIndex) =>
-                val model = est.fit(trainingDF, paramMap).asInstanceOf[EntropyModel]
+                val model = est.fit(trainingDF, paramMap).asInstanceOf[MeanVarianceModel]
                 val metric = eval.evaluate(model.transform(validationDataset, paramMap))
                 metric
             }
@@ -57,12 +57,12 @@ class EntropyCrossValidator (override val uid: String)
             if (eval.isLargerBetter) metrics.zipWithIndex.maxBy(_._1)
             else metrics.zipWithIndex.minBy(_._1)
 
-        val bestModel = est.fit(trainingDataset, epm(bestIndex)).asInstanceOf[EntropyModel]
-        copyValues(new EntropyCrossValidatorModel(this.uid, bestModel, metrics).setParent(this.asInstanceOf[Estimator[EntropyCrossValidatorModel]]))
+        val bestModel = est.fit(trainingDataset, epm(bestIndex)).asInstanceOf[MeanVarianceModel]
+        copyValues(new MeanVarianceCrossValidatorModel(this.uid, bestModel, metrics).setParent(this.asInstanceOf[Estimator[MeanVarianceCrossValidatorModel]]))
     }
 
-    override def copy(extra: ParamMap): EntropyCrossValidator = {
-        val copied = defaultCopy(extra).asInstanceOf[EntropyCrossValidator]
+    override def copy(extra: ParamMap): MeanVarianceCrossValidator = {
+        val copied = defaultCopy(extra).asInstanceOf[MeanVarianceCrossValidator]
 
         if (copied.isDefined(this.estimator)) {
             copied.setEstimator(copied.getEstimator.copy(extra))
@@ -76,11 +76,11 @@ class EntropyCrossValidator (override val uid: String)
     }
 }
 
-private[stream] class EntropyCrossValidatorModel (
+private[ml] class MeanVarianceCrossValidatorModel (
         override val uid: String,
-        val bestModel: EntropyModel,
+        val bestModel: MeanVarianceModel,
         val avgMetrics: Array[Double])
-    extends Model[EntropyCrossValidatorModel] {
+    extends Model[MeanVarianceCrossValidatorModel] {
 
     override def transform(dataset: Dataset[_]): DataFrame = {
         this.bestModel.transform(dataset)
@@ -90,8 +90,8 @@ private[stream] class EntropyCrossValidatorModel (
         this.bestModel.transformSchema(schema)
     }
 
-    override def copy(extra: ParamMap): EntropyCrossValidatorModel = {
-        val copied = new EntropyCrossValidatorModel(
+    override def copy(extra: ParamMap): MeanVarianceCrossValidatorModel = {
+        val copied = new MeanVarianceCrossValidatorModel(
             this.uid,
             this.bestModel.copy(extra),
             this.avgMetrics.clone()

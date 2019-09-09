@@ -1,7 +1,5 @@
 package offline
 
-import scala.collection.mutable.ArrayBuffer
-
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.feature.PCA
 import org.apache.spark.sql.functions._

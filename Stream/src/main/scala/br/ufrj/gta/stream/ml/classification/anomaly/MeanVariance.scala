@@ -1,4 +1,4 @@
-package br.ufrj.gta.stream.classification.anomaly
+package br.ufrj.gta.stream.ml.classification.anomaly
 
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.param._
@@ -8,7 +8,7 @@ import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{Dataset, DataFrame}
 import org.apache.spark.sql.functions._
 
-import br.ufrj.gta.stream.param._
+import br.ufrj.gta.stream.ml.param._
 
 case class FeaturesMeanVariance(mean: Array[Double], variance: Array[Double])
 
@@ -51,7 +51,7 @@ class MeanVarianceClassifier(override val uid: String)
     override def copy(extra: ParamMap): MeanVarianceClassifier = defaultCopy(extra)
 }
 
-private[stream] class MeanVarianceModel(
+private[ml] class MeanVarianceModel(
         override val uid: String,
         val limits: MeanVarianceLimits)
     extends PredictionModel[Vector, MeanVarianceModel] {

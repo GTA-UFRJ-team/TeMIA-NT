@@ -1,7 +1,5 @@
 package offline
 
-import scala.collection.mutable.ArrayBuffer
-
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.feature.{PCA, VectorIndexer}
 import org.apache.spark.ml.Pipeline

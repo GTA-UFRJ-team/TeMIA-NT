@@ -1,4 +1,4 @@
-package br.ufrj.gta.stream.param
+package br.ufrj.gta.stream.ml.param
 
 import org.apache.spark.ml.param._
 

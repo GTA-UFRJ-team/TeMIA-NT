@@ -4,7 +4,7 @@ import java.lang.Exception
 
 import org.apache.spark.sql.Dataset
 
-private[stream] class Metrics {
+private[util] class Metrics {
     var metrics = Map.empty[String, Seq[Any]]
 
     def this(names: String*) = {

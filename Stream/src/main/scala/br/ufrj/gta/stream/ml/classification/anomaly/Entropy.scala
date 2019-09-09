@@ -1,4 +1,4 @@
-package br.ufrj.gta.stream.classification.anomaly
+package br.ufrj.gta.stream.ml.classification.anomaly
 
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.param._
@@ -8,12 +8,12 @@ import org.apache.spark.mllib.rdd.RDDFunctions
 import org.apache.spark.sql.{Row, Dataset, DataFrame}
 import org.apache.spark.sql.functions._
 
-import br.ufrj.gta.stream.param._
+import br.ufrj.gta.stream.ml.param._
 import br.ufrj.gta.stream.util.Statistics
 
 case class EntropyLimits(lower: Array[Double], upper: Array[Double])
 
-private[classification] trait EntropyClassifierParams extends Params {
+private[anomaly] trait EntropyClassifierParams extends Params {
     var numRanges = new IntParam(this, "numRanges", "number of ranges in the histogram parameter (>= 1)")
     var windowSize = new IntParam(this, "windowSize", "window size parameter (>= 1)")
 
@@ -104,7 +104,7 @@ class EntropyClassifier(override val uid: String)
     override def copy(extra: ParamMap): EntropyClassifier = defaultCopy(extra)
 }
 
-private[stream] class EntropyModel(
+private[ml] class EntropyModel(
         override val uid: String,
         val limits: EntropyLimits)
     extends PredictionModel[Vector, EntropyModel]

@@ -5,7 +5,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.linalg.Vector
 
-object GTA extends Schema {
+object Flowtbag extends Schema {
     def getSchema: StructType = {
         new StructType()
             .add("srcip", "string") // (string) The source ip address
@@ -71,7 +71,7 @@ object GTA extends Schema {
     private def getFeaturesVector(featuresCol: String): VectorAssembler = {
         new VectorAssembler()
             .setInputCols(
-                GTA.getSchema
+                getSchema
                     .fieldNames
                     .toList
                     .takeRight(41)
@@ -81,6 +81,6 @@ object GTA extends Schema {
     }
 
     def featurize(df: DataFrame, featuresCol: String = "features"): DataFrame = {
-        GTA.getFeaturesVector(featuresCol).transform(df)
+        getFeaturesVector(featuresCol).transform(df)
     }
 }

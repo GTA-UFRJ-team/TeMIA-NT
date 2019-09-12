@@ -5,7 +5,7 @@ import org.apache.spark.ml.feature.PCA
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 
-import br.ufrj.gta.stream.schema.GTA
+import br.ufrj.gta.stream.schema.Flowtbag
 import br.ufrj.gta.stream.util.{File, Metrics}
 
 object LogisticRegression {
@@ -17,7 +17,7 @@ object LogisticRegression {
         val defaultFeaturesCol = "features"
         var featuresCol = defaultFeaturesCol
 
-        val schema = GTA.getSchema
+        val schema = Flowtbag.getSchema
 
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
@@ -45,7 +45,7 @@ object LogisticRegression {
             .schema(schema)
             .csv(inputFile)
 
-        val featurizedData = GTA.featurize(inputData, featuresCol)
+        val featurizedData = Flowtbag.featurize(inputData, featuresCol)
 
         var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
 

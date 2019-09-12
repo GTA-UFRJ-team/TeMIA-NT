@@ -5,7 +5,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 
 import br.ufrj.gta.stream.ml.classification.anomaly.MeanVarianceClassifier
-import br.ufrj.gta.stream.schema.GTA
+import br.ufrj.gta.stream.schema.Flowtbag
 import br.ufrj.gta.stream.util.{File, Metrics}
 
 object MeanVariance {
@@ -17,7 +17,7 @@ object MeanVariance {
         val defaultFeaturesCol = "features"
         var featuresCol = defaultFeaturesCol
 
-        val schema = GTA.getSchema
+        val schema = Flowtbag.getSchema
 
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
@@ -50,8 +50,8 @@ object MeanVariance {
             .schema(schema)
             .csv(inputTestFile)
 
-        val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-        val featurizedTestData = GTA.featurize(inputTestData, featuresCol)
+        val featurizedTrainingData = Flowtbag.featurize(inputTrainingData, featuresCol)
+        val featurizedTestData = Flowtbag.featurize(inputTestData, featuresCol)
 
         var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
 

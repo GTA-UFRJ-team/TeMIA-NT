@@ -6,7 +6,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 
-import br.ufrj.gta.stream.schema.GTA
+import br.ufrj.gta.stream.schema.Flowtbag
 import br.ufrj.gta.stream.util.{File, Metrics}
 
 object DecisionTree {
@@ -17,7 +17,7 @@ object DecisionTree {
         val pcaFeaturesCol = "pcaFeatures"
         var featuresCol = "features"
 
-        val schema = GTA.getSchema
+        val schema = Flowtbag.getSchema
 
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
@@ -51,8 +51,8 @@ object DecisionTree {
             .schema(schema)
             .csv(inputTestPath)
 
-        val featurizedTrainingData = GTA.featurize(inputTrainingData, featuresCol)
-        val featurizedTestData = GTA.featurize(inputTestDataStream, featuresCol)
+        val featurizedTrainingData = Flowtbag.featurize(inputTrainingData, featuresCol)
+        val featurizedTestData = Flowtbag.featurize(inputTestDataStream, featuresCol)
 
         val (trainingData, testData) = pcaK match {
             case Some(pcaK) => {

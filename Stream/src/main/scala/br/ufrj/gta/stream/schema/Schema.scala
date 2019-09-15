@@ -1,16 +1,38 @@
 package br.ufrj.gta.stream.schema
 
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 
-private[stream] trait Schema {
+trait Schema {
     def getSchema: StructType
 
-    def getLabelCol: String
+    def getNumCols: Int = {
+        this.getSchema.size
+    }
 
-    def getNumFeatures: Int
+    def getColsRange: Range = {
+        0 until this.getNumCols
+    }
 
-    def getFeaturesRange: Range
+    def getColNames: Seq[String] = {
+        this.getSchema.map[String, Seq[String]](sf => sf.name)
+    }
+}
 
-    def featurize(df: DataFrame, featuresCol: String = "features"): DataFrame
+trait PacketSchema extends Schema {
+
+}
+
+trait FlowSchema extends Schema {
+    def getLabelCol: String = {
+        "label"
+    }
+
+    def getNumFeatures: Int = {
+        this.getSchema.size
+    }
+
+    def getFeaturesRange: Range = {
+        0 until this.getNumFeatures
+    }
 }

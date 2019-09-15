@@ -6,7 +6,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 
-import br.ufrj.gta.stream.schema.Flowtbag
+import br.ufrj.gta.stream.schema.flow.Flowtbag
 import br.ufrj.gta.stream.util.{File, Metrics}
 
 object LogisticRegression {

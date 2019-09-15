@@ -1,11 +1,12 @@
-package br.ufrj.gta.stream.schema
+package br.ufrj.gta.stream.schema.flow
 
-import org.apache.spark.sql._
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.linalg.Vector
 
-object Flowtbag extends Schema {
+import br.ufrj.gta.stream.schema.FlowSchema
+
+object Flowtbag extends FlowSchema {
     def getSchema: StructType = {
         new StructType()
             .add("srcip", "string") // (string) The source ip address
@@ -56,16 +57,8 @@ object Flowtbag extends Schema {
             .add("label", "int") // class label
     }
 
-    def getLabelCol: String = {
-        "label"
-    }
-
-    def getNumFeatures: Int = {
+    override def getNumFeatures: Int = {
         40
-    }
-
-    def getFeaturesRange: Range = {
-        0 until 40
     }
 
     private def getFeaturesVector(featuresCol: String): VectorAssembler = {

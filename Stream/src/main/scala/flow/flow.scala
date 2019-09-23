@@ -1,12 +1,14 @@
 package flow
 
+import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
 
 import br.ufrj.gta.stream.network.GTAPacketConverter
-import br.ufrj.gta.stream.schema.packet.GTA
+import br.ufrj.gta.stream.schema.flow.{GTA => FlowGTA}
+import br.ufrj.gta.stream.schema.packet.{GTA => PacketGTA}
 
 object Flow {
     def main(args: Array[String]) {
@@ -23,16 +25,24 @@ object Flow {
             .option("subscribe", packetsTopic)
             .load()
 
-        val packetsDataStream = inputDataStream
+        val valueDataStream = inputDataStream
             .select(inputDataStream("value").cast("string"))
-            .withColumn("value", split(inputDataStream("value"), ","))
-            .toDF(GTA.getColNames: _*)
+
+        val packetsDataStream = valueDataStream
+            .withColumn("fields", split(valueDataStream("value"), ","))
+            .select(PacketGTA.getFieldsRange.map(c => col("fields").getItem(c).as(s"col$c")): _*)
+            .toDF(PacketGTA.getColNames: _*)
 
         val gtaConverter = new GTAPacketConverter("gtapc")
 
         val outputDataStream = packetsDataStream.writeStream
             .foreachBatch { (batchDF: DataFrame, batchId: Long) =>
-                gtaConverter.convert(packetsDataStream).write
+                val flowDF = gtaConverter.setLabelValue(gtaConverter.convert(batchDF), 0)
+
+                // TODO: concatenate columns
+                val kakfaFlowDF = flowDF //.select(concat(FlowGTA.getFeaturesRange: _*).as("value"))
+
+                kakfaFlowDF.write
                     .format("kafka")
                     .option("kafka.bootstrap.servers", kafkaServer)
                     .option("topic", flowsTopic)

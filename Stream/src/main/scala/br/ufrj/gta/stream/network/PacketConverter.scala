@@ -32,6 +32,8 @@ private[network] trait HasPacketConverterParams extends Params {
     }
 }
 
-abstract class PacketConverter extends Identifiable with HasPacketConverterParams {
+abstract class PacketConverter extends Identifiable {
     def convert(df: DataFrame): DataFrame
+
+    def setLabelValue(df: DataFrame, value: Any): DataFrame
 }

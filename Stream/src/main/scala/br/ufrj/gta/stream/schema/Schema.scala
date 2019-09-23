@@ -20,7 +20,13 @@ trait Schema {
 }
 
 trait PacketSchema extends Schema {
+    def getNumFields: Int = {
+        this.getSchema.size
+    }
 
+    def getFieldsRange: Range = {
+        0 until this.getNumFields
+    }
 }
 
 trait FlowSchema extends Schema {
@@ -28,9 +34,7 @@ trait FlowSchema extends Schema {
         "label"
     }
 
-    def getNumFeatures: Int = {
-        this.getSchema.size
-    }
+    def getNumFeatures: Int
 
     def getFeaturesRange: Range = {
         0 until this.getNumFeatures

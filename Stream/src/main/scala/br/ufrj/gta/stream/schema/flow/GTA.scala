@@ -22,7 +22,7 @@ object GTA extends FlowSchema {
             .add("qtd_pkt_udp", "int") // Amount of UDP packets
             .add("qtd_pkt_icmp", "int") // Amount of ICMP packets
             .add("qtd_pkt_ip", "int") // Amount of IP packets
-            .add("qtd_tos", "int") // Amount IP service type
+            .add("qtd_tos", "int") // Amount of IP service type
             .add("ttl_m", "int") // Average TTL
             .add("header_len_m", "int") // Average header size
             .add("packet_len_m", "int") // Average packet size

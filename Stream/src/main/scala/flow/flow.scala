@@ -19,6 +19,9 @@ object Flow {
         val flowsTopic = "flows"
         val triggerProcessingTime = "5 seconds"
 
+        // TODO: change label value based on the source of the packet
+        val labelValue = 0
+
         val inputDataStream = spark.readStream
             .format("kafka")
             .option("kafka.bootstrap.servers", kafkaServer)
@@ -37,10 +40,10 @@ object Flow {
 
         val outputDataStream = packetsDataStream.writeStream
             .foreachBatch { (batchDF: DataFrame, batchId: Long) =>
-                val flowDF = gtaConverter.setLabelValue(gtaConverter.convert(batchDF), 0)
+                val flowDF = gtaConverter.setLabelValue(gtaConverter.convert(batchDF), labelValue)
 
-                // TODO: concatenate columns
-                val kakfaFlowDF = flowDF //.select(concat(FlowGTA.getFeaturesRange: _*).as("value"))
+                val kakfaFlowDF = flowDF
+                    .select(array_join(array(FlowGTA.getColNames.map(c => flowDF(c).cast("string")): _*), ",").as("value"))
 
                 kakfaFlowDF.write
                     .format("kafka")

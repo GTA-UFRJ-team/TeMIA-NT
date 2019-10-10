@@ -14,13 +14,20 @@ object Flow {
     def main(args: Array[String]) {
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
-        val kafkaServer = "localhost:9092"
-        val packetsTopic = "packets"
-        val flowsTopic = "flows"
-        val triggerProcessingTime = "5 seconds"
+        if (args.length < 4) {
+            println("Missing parameters")
+            sys.exit(1)
+        }
 
-        // TODO: change label value based on the source of the packet
-        val labelValue = 0
+        val kafkaServer = args(0)
+        val packetsTopic = args(1)
+        val flowsTopic = args(2)
+        val labelValue = args(3).toInt
+        val triggerProcessingTime: String = try {
+            args(4)
+        } catch {
+            case e: Exception => "5 seconds"
+        }
 
         val inputDataStream = spark.readStream
             .format("kafka")

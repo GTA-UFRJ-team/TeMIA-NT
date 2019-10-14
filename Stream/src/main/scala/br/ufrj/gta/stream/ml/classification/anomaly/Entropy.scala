@@ -9,7 +9,7 @@ import org.apache.spark.sql.{Row, Dataset, DataFrame}
 import org.apache.spark.sql.functions._
 
 import br.ufrj.gta.stream.ml.param._
-import br.ufrj.gta.stream.util.Statistics
+import br.ufrj.gta.stream.util.Math
 
 case class EntropyLimits(lower: Array[Double], upper: Array[Double])
 
@@ -58,9 +58,9 @@ class EntropyClassifier(override val uid: String)
             var i = 0
 
             for (i <- 0 until transposed.size) {
-                for ((k, v) <- Statistics.histogram(transposed(i), numRanges)) {
+                for ((k, v) <- Math.histogram(transposed(i), numRanges)) {
                     val freq = 1.0 * v / windowSize
-                    entropy(i) -= freq * Statistics.log2(freq)
+                    entropy(i) -= freq * Math.log2(freq)
                 }
             }
 
@@ -144,9 +144,9 @@ private[ml] class EntropyModel(
                 var i = 0
 
                 for (i <- 0 until transposed.size) {
-                    for ((k, v) <- Statistics.histogram(transposed(i), numRanges)) {
+                    for ((k, v) <- Math.histogram(transposed(i), numRanges)) {
                         val freq = 1.0 * v / windowSize
-                        entropy(i) -= freq * Statistics.log2(freq)
+                        entropy(i) -= freq * Math.log2(freq)
                     }
                 }
 

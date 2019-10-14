@@ -5,8 +5,9 @@ import org.apache.spark.ml.feature.PCA
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 
+import br.ufrj.gta.stream.metrics._
 import br.ufrj.gta.stream.schema.flow.Flowtbag
-import br.ufrj.gta.stream.util.{File, Metrics}
+import br.ufrj.gta.stream.util.File
 
 object DecisionTree {
     def main(args: Array[String]) {
@@ -46,7 +47,7 @@ object DecisionTree {
 
         val featurizedData = Flowtbag.featurize(inputData, featuresCol)
 
-        var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
+        val metrics = new PredictionMetrics(PredictionMetrics.names ++ Array("Number of cores", "Training time", "Test time"))
 
         for (i <- 0 until numSims) {
             val splitData = featurizedData.randomSplit(Array(0.7, 0.3))
@@ -91,7 +92,7 @@ object DecisionTree {
 
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
 
-            metrics = metrics.add(Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime))
+            metrics.add(metrics.getMetrics(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime))
 
             prediction.unpersist()
         }

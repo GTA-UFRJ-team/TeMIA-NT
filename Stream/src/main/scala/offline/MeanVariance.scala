@@ -4,9 +4,10 @@ import org.apache.spark.ml.feature.PCA
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 
+import br.ufrj.gta.stream.metrics._
 import br.ufrj.gta.stream.ml.classification.anomaly.MeanVarianceClassifier
 import br.ufrj.gta.stream.schema.flow.Flowtbag
-import br.ufrj.gta.stream.util.{File, Metrics}
+import br.ufrj.gta.stream.util.File
 
 object MeanVariance {
     def main(args: Array[String]) {
@@ -53,7 +54,7 @@ object MeanVariance {
         val featurizedTrainingData = Flowtbag.featurize(inputTrainingData, featuresCol)
         val featurizedTestData = Flowtbag.featurize(inputTestData, featuresCol)
 
-        var metrics = Metrics.empty((Metrics.DefaultMetrics ++ List("Number of cores", "Training time", "Test time")): _*)
+        val metrics = new PredictionMetrics(PredictionMetrics.names ++ Array("Number of cores", "Training time", "Test time"))
 
         for (i <- 0 until numSims) {
             val splitData = Array(featurizedTrainingData.randomSplit(Array(0.7, 0.3))(0), featurizedTestData.randomSplit(Array(0.7, 0.3))(1))
@@ -97,7 +98,7 @@ object MeanVariance {
 
             val testTime = (System.currentTimeMillis() - startTime) / 1000.0
 
-            metrics = metrics.add(Metrics.getPrediction(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime))
+            metrics.add(metrics.getMetrics(prediction, labelCol, predictionCol) + ("Number of cores" -> numCores, "Training time" -> trainingTime, "Test time" -> testTime))
 
             prediction.unpersist()
         }

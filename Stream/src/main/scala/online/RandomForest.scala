@@ -7,8 +7,9 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 
+import br.ufrj.gta.stream.metrics._
 import br.ufrj.gta.stream.schema.flow.Flowtbag
-import br.ufrj.gta.stream.util.{File, Metrics}
+import br.ufrj.gta.stream.util.File
 
 object RandomForest {
     def main(args: Array[String]) {
@@ -99,7 +100,7 @@ object RandomForest {
 
         outputDataStream.awaitTermination(timeoutStream)
 
-        var metrics = Metrics.empty(Metrics.DefaultMetrics: _*)
+        val metrics = new PredictionMetrics(PredictionMetrics.names)
 
         val inputResultData = spark.read
             .option("sep", sep)
@@ -107,7 +108,7 @@ object RandomForest {
             .schema(new StructType().add(labelCol, "integer").add(predictionCol, "double"))
             .csv(outputPath + "*.csv")
 
-        metrics = metrics.add(Metrics.getPrediction(inputResultData, labelCol, predictionCol))
+        metrics.add(metrics.getMetrics(inputResultData, labelCol, predictionCol))
 
         metrics.export(metricsFilename, Metrics.FormatCsv)
 

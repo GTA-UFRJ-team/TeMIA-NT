@@ -78,6 +78,7 @@ object StreamingMetrics {
     val names = Array("Batch id",
         "Timestamp",
         "Input rows",
+        "Input rows per second",
         "Processed rows per second",
         "Trigger execution",
         "Query planning",

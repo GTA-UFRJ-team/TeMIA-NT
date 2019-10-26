@@ -116,5 +116,5 @@ Tipo | Descrição |
 
 ## Referências
 
-1. http://spark.apache.org/docs/2.4.0/ml-guide.html
-1. http://spark.apache.org/docs/2.4.0/api/scala/
+1. http://spark.apache.org/docs/latest/ml-guide.html
+1. http://spark.apache.org/docs/latest/api/scala/

@@ -11,7 +11,7 @@ import br.ufrj.gta.stream.network.GTAPacketConverter
 import br.ufrj.gta.stream.schema.flow.{GTA => FlowGTA}
 import br.ufrj.gta.stream.schema.packet.{GTA => PacketGTA}
 
-object Flow {
+object GTAFlow {
     def main(args: Array[String]) {
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 

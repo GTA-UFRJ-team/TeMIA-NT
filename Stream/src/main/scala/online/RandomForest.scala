@@ -24,22 +24,23 @@ object RandomForest {
 
         val spark = SparkSession.builder.appName("Stream").getOrCreate()
 
-        if (args.length < 8) {
+        if (args.length < 9) {
             println("Missing parameters")
             sys.exit(1)
         }
 
         val inputTrainingFile = args(0)
-        val inputTestPath = args(1)
-        val outputPath = File.appendSlash(args(2))
-        val metricsFilename = args(3)
-        val timeoutStream = args(4).toLong
-        val numTrees = args(5).toInt
-        val impurity = args(6)
-        val maxDepth = args(7).toInt
+        val timeoutStream = args(1).toLong
+        val inputTestPath = args(2)
+        val outputPath = File.appendSlash(args(3))
+        val progressFilename = args(4)
+        val metricsFilename = args(5)
+        val numTrees = args(6).toInt
+        val impurity = args(7)
+        val maxDepth = args(8).toInt
         //val maxCategories = args(8).toInt
         val pcaK: Option[Int] = try {
-            Some(args(8).toInt)
+            Some(args(9).toInt)
         } catch {
             case e: Exception => None
         }
@@ -91,6 +92,10 @@ object RandomForest {
 
         val predictionCol = classifier.getPredictionCol
 
+        val streamingMetrics = new StreamingMetrics(StreamingMetrics.names)
+
+        spark.streams.addListener(streamingMetrics.getListener)
+
         val outputDataStream = prediction.select(prediction(labelCol), prediction(predictionCol)).writeStream
             .outputMode("append")
             .option("checkpointLocation", outputPath + "checkpoints/")
@@ -111,6 +116,8 @@ object RandomForest {
         metrics.add(metrics.getMetrics(inputResultData, labelCol, predictionCol))
 
         metrics.export(metricsFilename, Metrics.FormatCsv)
+
+        streamingMetrics.export(progressFilename, Metrics.FormatCsv)
 
         spark.stop()
     }

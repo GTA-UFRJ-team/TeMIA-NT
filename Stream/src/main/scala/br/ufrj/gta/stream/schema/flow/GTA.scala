@@ -7,6 +7,8 @@ import org.apache.spark.ml.feature.VectorAssembler
 import br.ufrj.gta.stream.schema.FlowSchema
 
 object GTA extends FlowSchema {
+
+    // Antonio features
     def getSchema: StructType = {
         new StructType()
             .add("srcaddr", "string") // (string) The source IP address
@@ -42,6 +44,7 @@ object GTA extends FlowSchema {
         24
     }
 
+    // Creates a single vector column containing all features
     private def getFeaturesVector(featuresCol: String): VectorAssembler = {
         new VectorAssembler()
             .setInputCols(

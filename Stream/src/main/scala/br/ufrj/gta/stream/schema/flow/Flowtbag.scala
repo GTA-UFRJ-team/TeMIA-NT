@@ -7,6 +7,8 @@ import org.apache.spark.ml.feature.VectorAssembler
 import br.ufrj.gta.stream.schema.FlowSchema
 
 object Flowtbag extends FlowSchema {
+
+    // Flowtbag features
     def getSchema: StructType = {
         new StructType()
             .add("srcip", "string") // (string) The source ip address
@@ -61,6 +63,7 @@ object Flowtbag extends FlowSchema {
         40
     }
 
+    // Creates a single vector column containing all features
     private def getFeaturesVector(featuresCol: String): VectorAssembler = {
         new VectorAssembler()
             .setInputCols(

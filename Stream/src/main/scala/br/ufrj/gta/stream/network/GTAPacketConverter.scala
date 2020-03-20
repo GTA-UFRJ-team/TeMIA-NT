@@ -100,12 +100,14 @@ class GTAPacketConverter(override val uid: String) extends PacketConverter {
             )
     }
 
+    // Abstracts flows using Apache Spark
     def convert(df: DataFrame): DataFrame = {
         this.convertTCP(df)
             .union(this.convertUDP(df))
             .union(this.convertICMP(df))
     }
 
+    // Set flow label (can assume flows to be either legitimate or malicous)
     def setLabelValue(df: DataFrame, value: Any): DataFrame = {
         df.withColumn(GTA.getLabelCol, lit(value))
     }

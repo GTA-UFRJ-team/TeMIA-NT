@@ -6,6 +6,8 @@ import org.apache.spark.ml.feature.VectorAssembler
 import br.ufrj.gta.stream.schema.PacketSchema
 
 object GTA extends PacketSchema {
+
+    // Spark abstraction features
     def getSchema: StructType = {
         new StructType()
             .add("ip_srcaddr", "string") // (string) The source IP address

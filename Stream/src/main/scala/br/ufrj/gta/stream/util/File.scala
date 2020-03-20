@@ -38,6 +38,7 @@ object File {
         new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), encoding))
     }
 
+    // Exports data into a CSV file
     def exportCSV(filename: String, header: Iterable[_], values: Iterable[Iterable[_]]): Unit = {
         try {
             val bw = File.getFileWriter(filename, "utf-8")

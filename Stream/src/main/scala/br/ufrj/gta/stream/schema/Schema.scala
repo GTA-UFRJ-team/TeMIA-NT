@@ -3,6 +3,7 @@ package br.ufrj.gta.stream.schema
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 
+// Base schema acess methods
 trait Schema {
     def getSchema: StructType
 
@@ -19,6 +20,7 @@ trait Schema {
     }
 }
 
+// Schema acess methods based on Antonio or flowtbag features
 trait PacketSchema extends Schema {
     def getNumFields: Int = {
         this.getSchema.size
@@ -29,6 +31,7 @@ trait PacketSchema extends Schema {
     }
 }
 
+// Schema acess methods based on Spark abstraction
 trait FlowSchema extends Schema {
     def getLabelCol: String = {
         "label"

@@ -107,7 +107,7 @@ class GTAPacketConverter(override val uid: String) extends PacketConverter {
             .union(this.convertICMP(df))
     }
 
-    // Set flow label (can assume flows to be either legitimate or malicous)
+    // Set flow label (can assume flows to be either legitimate or malicious)
     def setLabelValue(df: DataFrame, value: Any): DataFrame = {
         df.withColumn(GTA.getLabelCol, lit(value))
     }

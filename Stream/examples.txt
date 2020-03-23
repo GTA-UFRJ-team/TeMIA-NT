@@ -1,0 +1,42 @@
+## Startup
+#Hadoop
+/opt/hadoop/sbin/start-dfs.sh
+/opt/hadoop/sbin/start-yarn.sh
+
+#Spark
+/opt/spark/sbin/start-all.sh
+
+#Elasticsearch
+systemctl start elasticsearch
+
+#Kafka
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-start.sh /opt/kafka/kafka_2.11-2.4.1/config/server.properties &
+
+## Offline
+#Decision Tree
+spark-submit --master spark://master:7077 --class offline.DecisionTree /home/chagas/CATRACA/gta-ids/Stream/target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network500KBinaryBalancedNew.csv /home/chagas/CATRACA/gta-ids/Stream/results/DecisionTree-teste1.csv 2 8 gini 20
+
+## Online
+#Decision Tree
+spark-submit --master spark://master:7077 --class online.DecisionTree /home/chagas/CATRACA/gta-ids/Stream/target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network500KBinaryBalancedNew.csv 5000 hdfs://master:9000/user/app/test /home/chagas/CATRACA/gta-ids/Stream/results-online DecisionTree-teste1-output.csv DecisionTree-teste1-metrics.csv gini 20
+
+#Elastic+Decision Tree
+spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1 --class online.DecisionTreeElastic /home/chagas/CATRACA/gta-ids/Stream/target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network500KBinaryBalancedNew.csv 5000 hdfs://master:9000/user/app/test /home/chagas/CATRACA/gta-ids/Stream/results-onlineElastic
+
+## Online Kafka
+#Decision Tree
+spark-submit --master spark://master:7077 --class onlineKafka.DecisionTreeKafka --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 /home/chagas/CATRACA/gta-ids/Stream/target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network500KBinaryBalancedNew.csv 5000 localhost:2181 testing /home/chagas/CATRACA/gta-ids/Stream/results-onlineKafka DecisionTree-teste1-output.csv DecisionTree-teste1-metrics.csv gini 20
+
+#Elastic+DecisionTree+Kafka
+spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 --class onlineElastic.DecisionTreeElastic /home/chagas/CATRACA/gta-ids/Stream/target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network100KBinaryBalancedNew.csv localhost:2181 testing /home/chagas/CATRACA/gta-ids/Stream/results-onlineElastic
+
+## Kafka
+# Send a csv file into a Kafka topic
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic testing < Network50KBinaryBalancedNew.csv
+
+# Save a Kafka's topic content in a txt file
+sudo /opt/kafka/kafka_2.11-2.4.1/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic testing --from-beginning > test.txt
+
+# Empty Kafka's topic
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-configs.sh --zookeeper localhost:9092 --entity-type topics --alter --entity-name testing --add-config retention.ms=1000
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-configs.sh --zookeeper localhost:9092 --entity-type topics --alter --entity-name testing --add-config retention.ms=10000000

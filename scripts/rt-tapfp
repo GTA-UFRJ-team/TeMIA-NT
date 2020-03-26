@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Sources config file
+. /root/gta-ids/scripts/config-file.conf
+
+int_handler()
+{
+    echo ""
+    echo "Removing temporary files"
+    rm -r $toolPath/processing/results-onlineElastic/*
+    echo "Stopping flow abstraction"
+    kill $flow_abstraction_id
+    echo "Stopping tool"
+    kill $classification_id
+    kill $PPID
+    exit 1
+}
+trap 'int_handler' INT
+
+echo "Packaging processing module"
+# Packages processing module
+cd $toolPath/processing
+sbt package
+
+# Restarts all necessary services
+echo "Restarting all necessary services"
+echo "Restarting Kafka"
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-stop.sh
+nohup /opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-start.sh /opt/kafka/kafka_2.11-2.4.1/config/server.properties &
+echo "Restarting Hadoop"
+/opt/hadoop/sbin/stop-yarn.sh
+/opt/hadoop/sbin/stop-dfs.sh
+/opt/hadoop/sbin/start-dfs.sh
+/opt/hadoop/sbin/start-yarn.sh
+echo "Restarting Elastic stack"
+systemctl stop elasticsearch
+systemctl stop kibana
+systemctl start elasticsearch
+systemctl start kibana
+echo "Restarting Spark"
+/opt/spark/sbin/stop-all.sh
+/opt/spark/sbin/start-all.sh
+
+# Creates a Kafka topic if none exists
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1  --partitions 1 --topic testing
+
+# Starts flow abstraction
+echo "Starting flow abstraction"
+cd $toolPath/capture
+sed "27s/.*/IFACE = '$iface'/g" read-network.py
+nohup python read-network.py &
+flow_abstraction_id=$!
+
+# Starts flow classification
+echo "Starting flow classification"
+echo "Check classification results acessing 'localhost:5601' on your browser"
+echo "Stop tool with Ctrl+C"
+cd $toolPath/processing
+nohup spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 --class onlineElastic.${algorithm}Elastic target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv localhost:9092 testing results-onlineElastic &
+classification_id=$!
+sleep infinity

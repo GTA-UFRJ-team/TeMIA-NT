@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Sources config file
-. /root/gta-ids/scripts/config-file.conf
+. config-file.conf
 
 int_handler()
 {
@@ -47,7 +47,7 @@ echo "Restarting Spark"
 # Starts flow abstraction
 echo "Starting flow abstraction"
 cd $toolPath/capture
-sed "27s/.*/IFACE = '$iface'/g" read-network.py
+sed -i "27s/.*/IFACE = '${iface}'/" read-network.py
 nohup python read-network.py &
 flow_abstraction_id=$!
 

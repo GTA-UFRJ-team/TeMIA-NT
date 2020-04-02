@@ -7,7 +7,7 @@ int_handler()
 {
     echo ""
     echo "Removing temporary files"
-    rm -r $toolPath/processing/results-onlineElastic/*
+    hdfs dfs -rm -r /user/app/elasticCheckpoint/*
     echo "Stopping flow abstraction"
     kill $flow_abstraction_id
     echo "Stopping tool"
@@ -24,8 +24,11 @@ sbt package
 
 # Restarts all necessary services
 echo "Restarting all necessary services"
-echo "Restarting Kafka"
+echo "Restarting Zookeeper and Kafka"
 /opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-stop.sh
+/opt/kafka/kafka_2.11-2.4.1/bin/zookeeper-server-stop.sh
+nohup /opt/kafka/kafka_2.11-2.4.1/bin/zookeeper-server-start.sh /opt/kafka/kafka_2.11-2.4.1/config/zookeeper.properties &
+sleep 5
 nohup /opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-start.sh /opt/kafka/kafka_2.11-2.4.1/config/server.properties &
 echo "Restarting Hadoop"
 /opt/hadoop/sbin/stop-yarn.sh
@@ -56,6 +59,6 @@ echo "Starting flow classification"
 echo "Check classification results acessing 'localhost:5601' on your browser"
 echo "Stop tool with Ctrl+C"
 cd $toolPath/processing
-nohup spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 --class onlineElastic.${algorithm}Elastic target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv localhost:9092 testing results-onlineElastic &
+nohup spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 --class onlineElastic.${algorithm}Elastic target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv localhost:9092 testing hdfs://master:9000/user/app/elasticCheckpoint $clusterSlaves &
 classification_id=$!
 sleep infinity

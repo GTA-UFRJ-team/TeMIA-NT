@@ -13,6 +13,7 @@ apt install openjdk-8-jdk openjdk-8-jre -y
 wget http://ftp.unicamp.br/pub/apache/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz
 mkdir -p /opt/hadoop
 tar -xzvf hadoop-3.2.1.tar.gz -C /opt/hadoop/ --strip-components=1
+rm hadoop-3.2.1.tar.gz
 echo $'# -- HADOOP ENVIRONMENT VARIABLES START -- #
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 export HADOOP_HOME=/opt/hadoop
@@ -165,10 +166,12 @@ hdfs namenode -format
 hdfs dfsadmin -safemode leave
 hadoop fs -mkdir /user
 hadoop fs -mkdir /user/app
+hadoop fs -mkdir /user/app/elasticCheckpoint
 apt-get install scala -y
 wget http://ftp.unicamp.br/pub/apache/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz
 mkdir /opt/spark
 tar xzf spark-2.4.5-bin-hadoop2.7.tgz -C /opt/spark --strip-components=1
+rm spark-2.4.5-bin-hadoop2.7.tgz
 echo $'export SPARK_HOME=/opt/spark
 export PATH=$PATH:$SPARK_HOME/bin
 export PYSPARK_DRIVER_PYTHON=ipython' >> ~/.bashrc
@@ -190,6 +193,7 @@ apt-get install zookeeperd -y
 wget https://downloads.apache.org/kafka/2.4.1/kafka_2.11-2.4.1.tgz
 mkdir /opt/kafka
 tar -xvf kafka_2.11-2.4.1.tgz -C /opt/kafka/
+rm kafka_2.11-2.4.1.tgz
 nohup /opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-start.sh /opt/kafka/kafka_2.11-2.4.1/config/server.properties &
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
 sh -c 'echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" > /etc/apt/sources.list.d/elastic-7.x.list'
@@ -204,6 +208,7 @@ systemctl enable kibana
 update-rc.d kibana defaults 96 9
 wget http://gta.ufrj.br/~chagas/dataset-ids.tar.gz
 tar -xvf dataset-ids.tar.gz
+rm dataset-ids.tar.gz
 cd dataset-ids
 . ~/.bashrc
 hdfs dfsadmin -safemode leave

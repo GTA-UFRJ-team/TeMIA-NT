@@ -160,15 +160,21 @@ object DecisionTreeElastic {
         // Fits the training data to the classifier, creating the classification model
         val model = classifier.fit(trainingData)
 
+        def current_time = udf(() => {
+            java.time.LocalDateTime.now().toString
+        })
+
         // Tests model on the test data
-        val prediction = model.transform(testData)
+        val prediction = model
+            .transform(testData)
+            .withColumn("date", current_time())
 
         // Creates a column with the classification prediction
         val predictionCol = classifier.getPredictionCol
 
         // Write the classification results on Elasticsearch
         val outputDataStream = prediction
-            .select(prediction("srcip"), prediction("srcport"), prediction("dstip"), prediction("dstport"), prediction("proto"), prediction(labelCol), prediction(predictionCol))
+            .select(prediction("srcip"), prediction("srcport"), prediction("dstip"), prediction("dstport"), prediction("proto"), prediction("date"), prediction(labelCol), prediction(predictionCol))
             .writeStream
             .format("es")
             .option("checkpointLocation", outputPath)

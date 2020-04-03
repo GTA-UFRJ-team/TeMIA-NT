@@ -46,7 +46,7 @@ object LogisticRegressionElastic {
         val outputPath = File.appendSlash(args(3))
 
         // String cointaining all slave nodes; defaults to localhost if empty
-        val slaveNodes = if (args(4) != "") args(4) else "localhost"
+        val slaveNodes = if (args(4) != "local") args(4) else "localhost"
 
         // Sets algorithm hyperparameters
         val regParam = 0.03
@@ -147,11 +147,12 @@ object LogisticRegressionElastic {
         // Fits the training data to the classifier, creating the classification model
         val model = classifier.fit(trainingData)
 
+        // Gets current time
         def current_time = udf(() => {
             java.time.LocalDateTime.now().toString
         })
 
-        // Tests model on the test data
+        // Tests model on the test data, and adds timestamp field
         val prediction = model
             .transform(testData)
             .withColumn("date", current_time())

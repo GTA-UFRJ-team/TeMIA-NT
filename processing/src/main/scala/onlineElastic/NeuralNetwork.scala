@@ -33,7 +33,7 @@ object NeuralNetworkElastic {
             sys.exit(1)
         }
 
-        // Path for training dataset file (assumes all entries to contain legitimate traffic)
+        // Path for training dataset file
         val inputTrainingFile = args(0)
 
         // Kafka server address

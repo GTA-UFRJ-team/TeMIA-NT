@@ -166,6 +166,7 @@ hdfs namenode -format
 hdfs dfsadmin -safemode leave
 hadoop fs -mkdir /user
 hadoop fs -mkdir /user/app
+hadoop fs -mkdir /user/app/kafkaCheckpoint
 hadoop fs -mkdir /user/app/elasticCheckpoint
 apt-get install scala -y
 wget http://ftp.unicamp.br/pub/apache/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz

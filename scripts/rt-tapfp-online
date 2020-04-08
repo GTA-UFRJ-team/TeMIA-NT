@@ -7,6 +7,7 @@ int_handler()
 {
     echo ""
     echo "Removing temporary files"
+    hdfs dfs -rm -r /user/app/kafkaCheckpoint/*
     hdfs dfs -rm -r /user/app/elasticCheckpoint/*
     echo "Stopping flow abstraction"
     kill $flow_abstraction_id
@@ -26,8 +27,9 @@ sbt package
 echo "Restarting all necessary services"
 echo "Restarting Zookeeper and Kafka"
 /opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-stop.sh
-systemctl restart zookeeper
-sleep 3
+/opt/kafka/kafka_2.11-2.4.1/bin/zookeeper-server-stop.sh
+nohup /opt/kafka/kafka_2.11-2.4.1/bin/zookeeper-server-start.sh /opt/kafka/kafka_2.11-2.4.1/config/zookeeper.properties >/dev/null 2>&1 &
+sleep 5
 nohup /opt/kafka/kafka_2.11-2.4.1/bin/kafka-server-start.sh /opt/kafka/kafka_2.11-2.4.1/config/server.properties >/dev/null 2>&1 &
 echo "Restarting Hadoop"
 /opt/hadoop/sbin/stop-yarn.sh
@@ -43,11 +45,13 @@ echo "Restarting Spark"
 /opt/spark/sbin/stop-all.sh
 /opt/spark/sbin/start-all.sh
 
-# Creates a Kafka topic if none exists
-/opt/kafka/kafka_2.11-2.4.1/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1  --partitions 1 --topic testing
+# Creates the Kafka topics if they don't exist
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1  --partitions 1 --topic flow_abstraction
+/opt/kafka/kafka_2.11-2.4.1/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1  --partitions 1 --topic flow_classification
 
 # Removing old files in case of abrupt termination
 echo "Removing old files in case of abrupt termination"
+hdfs dfs -rm -r /user/app/kafkaCheckpoint/*
 hdfs dfs -rm -r /user/app/elasticCheckpoint/*
 
 # Starts flow abstraction
@@ -62,6 +66,11 @@ echo "Starting flow classification"
 echo "Check classification results acessing 'localhost:5601' on your browser"
 echo "Stop tool with Ctrl+C"
 cd $toolPath/processing
-nohup spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 --class onlineElastic.${algorithm}Elastic target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv localhost:9092 testing hdfs://master:9000/user/app/elasticCheckpoint $clusterSlaves >/dev/null 2>&1 &
+if [[ $continuous ]]
+then
+        nohup spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 --class onlineContinuous.${algorithm}Continuous target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv localhost:9092 $clusterSlaves hdfs://master:9000/user/app/kafkaCheckpoint hdfs://master:9000/user/app/elasticCheckpoint >/dev/null 2>&1 &
+else
+        nohup spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 --class onlineElastic.${algorithm}Elastic target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv localhost:9092 testing hdfs://master:9000/user/app/elasticCheckpoint $clusterSlaves >/dev/null 2>&1 &
+fi
 classification_id=$!
 sleep infinity

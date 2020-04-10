@@ -43,7 +43,7 @@ object MeanVariance {
         val inputTestFile = args(1)
 
         // String cointaining all slave nodes; defaults to localhost if empty
-        val slaveNodes = if (args(2) != "") args(1) else "localhost"
+        val slaveNodes = if (args(2) != "local") args(1) else "localhost"
 
         // Dataset used for model creation and test
         val dataset = args(3)

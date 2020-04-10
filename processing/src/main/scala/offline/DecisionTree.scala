@@ -40,7 +40,7 @@ object DecisionTree {
         val inputFile = args(0)
 
         // String cointaining all slave nodes; defaults to localhost if empty
-        val slaveNodes = if (args(1) != "") args(1) else "localhost"
+        val slaveNodes = if (args(1) != "local") args(1) else "localhost"
 
         // Dataset used for model creation and test
         val dataset = args(2)

@@ -191,7 +191,7 @@ spark.driver.memory              5g
 spark.executor.extraJavaOptions  -XX:+PrintGCDetails -Dkey=value -Dnumbers="on$' >> /opt/spark/conf/spark-defaults.conf
 mkdir /tmp/spark-events
 apt-get install zookeeperd -y
-wget https://downloads.apache.org/kafka/2.4.1/kafka_2.11-2.4.1.tgz
+wget https://archive.apache.org/dist/kafka/2.4.1/kafka_2.11-2.4.1.tgz
 mkdir /opt/kafka
 tar -xvf kafka_2.11-2.4.1.tgz -C /opt/kafka/
 rm kafka_2.11-2.4.1.tgz

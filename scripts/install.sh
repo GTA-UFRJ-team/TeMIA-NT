@@ -169,10 +169,10 @@ hadoop fs -mkdir /user/app
 hadoop fs -mkdir /user/app/kafkaCheckpoint
 hadoop fs -mkdir /user/app/elasticCheckpoint
 apt-get install scala -y
-wget http://ftp.unicamp.br/pub/apache/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz
+wget https://downloads.apache.org/spark/spark-2.4.7/spark-2.4.7-bin-hadoop2.7.tgz
 mkdir /opt/spark
-tar xzf spark-2.4.5-bin-hadoop2.7.tgz -C /opt/spark --strip-components=1
-rm spark-2.4.5-bin-hadoop2.7.tgz
+tar xzf spark-2.4.7-bin-hadoop2.7.tgz -C /opt/spark --strip-components=1
+rm spark-2.4.7-bin-hadoop2.7.tgz
 echo $'export SPARK_HOME=/opt/spark
 export PATH=$PATH:$SPARK_HOME/bin
 export PYSPARK_DRIVER_PYTHON=ipython' >> ~/.bashrc

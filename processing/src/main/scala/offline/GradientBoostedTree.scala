@@ -1,6 +1,6 @@
 package offline
 
-import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
+import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.feature.PCA
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, BinaryClassificationEvaluator}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
@@ -18,7 +18,7 @@ import org.elasticsearch.spark._
 import org.elasticsearch.spark.sql._
 import org.elasticsearch.hadoop.cfg.ConfigurationOptions
 
-object NeuralNetwork {
+object GradientBoostedTree {
     def main(args: Array[String]) {
 
         // Sets dataset file separation string ("," for csv) and label column name
@@ -72,23 +72,27 @@ object NeuralNetwork {
 
         var startTime = System.currentTimeMillis()
 
-        // Creates a Multilayer Perceptron classifier, using the hyperparameters defined previously
-        val mp = new MultilayerPerceptronClassifier()
+        // Creates a Gradient-boosted Tree classifier, using the hyperparameters defined previously
+        val gbt = new GBTClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
 
         val paramGrid = new ParamGridBuilder()
-            .addGrid(mp.layers, Array(Array[Int](40, 21, 2)))                       // Layer sizes including input size and output size
-            //.addGrid(mp.maxIter, Array(5,10,20,50,100,200))                       // Param for maximum number of iterations
-            //.addGrid(mp.stepSize, Array(10e-6,10e-5,10e-4,10e-3,10e-2,10e-1,1))   // Param for Step size to be used for each iteration of optimization
-            //.addGrid(mp.tol, Array(0.000001,0.00001,0.0001,0.001))                // Param for the convergence tolerance for iterative algorithms
+            //.addGrid(gbt.featureSubsetStrategy, Array("all","onethird","sqrt","log2"))    // The number of features to consider for splits at each tree node
+            //.addGrid(gbt.impurity, Array("gini","entropy"))                               // Criterion used for information gain calculation
+            //.addGrid(gbt.maxDepth, Array(3,6,9,12,15,18,21,24,27,30))                     // Maximum depth of the tree
+            //.addGrid(gbt.maxBins, Array(2,4,8,16,32))                                     // Maximum number of bins used for discretizing continuous features and for choosing how to split on features at each node
+            //.addGrid(gbt.minInfoGain, Array(0.0,0.1,0.2,0.3,0.4,0.5))                     // Minimum information gain for a split to be considered at a tree node
+            //.addGrid(gbt.minInstancesPerNode, Array(1,2,5,10,20,40))                      // Minimum number of instances each child must have after split
+            //.addGrid(gbt.stepSize, Array(0.05,0.1,0.2))                                   // Param for Step size (a.k.a. learning rate) in interval (0, 1] for shrinking the contribution of each estima$
+            //.addGrid(gbt.subsamplingRate, Array(0.5,0.75,1.0))                            // Fraction of the training data used for learning each decision tree
             .build()
 
         val evaluator = new MulticlassClassificationEvaluator
-        //evaluator.setMetricName("weightedPrecision")                              // Uncomment this line to make the evaluator prioritize another metric
+        //evaluator.setMetricName("weightedPrecision")                                      // Uncomment this line to make the evaluator prioritize another metric
 
         val classifier = new CrossValidator()
-            .setEstimator(mp)
+            .setEstimator(gbt)
             .setEstimatorParamMaps(paramGrid)
             .setEvaluator(evaluator)
             .setNumFolds(10)
@@ -109,7 +113,7 @@ object NeuralNetwork {
         // Cache model to improve performance
         prediction.cache()
 
-        // Perform an action to accurately measure the test time
+        // Performs an action to accurately measure the test time
         prediction.count()
 
         val testTime = (System.currentTimeMillis() - startTime) / 1000.0
@@ -130,7 +134,7 @@ object NeuralNetwork {
         val auc = aucEvaluator.evaluate(prediction)
 
         // Creates a DataFrame with the resulting metrics, and send them to ElasticSearch
-        val elasticDF = Seq(Row("Multilayer Perceptron", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
+        val elasticDF = Seq(Row("Gradient-boosted Tree", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
         val elasticSchema = List(
           StructField("algorithm", StringType, true),
           StructField("accuracy", DoubleType, true),

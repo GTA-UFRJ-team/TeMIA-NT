@@ -1,6 +1,6 @@
 package offline
 
-import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
+import org.apache.spark.ml.classification.NaiveBayes
 import org.apache.spark.ml.feature.PCA
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, BinaryClassificationEvaluator}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
@@ -18,7 +18,7 @@ import org.elasticsearch.spark._
 import org.elasticsearch.spark.sql._
 import org.elasticsearch.hadoop.cfg.ConfigurationOptions
 
-object NeuralNetwork {
+object NaiveBayes {
     def main(args: Array[String]) {
 
         // Sets dataset file separation string ("," for csv) and label column name
@@ -72,23 +72,20 @@ object NeuralNetwork {
 
         var startTime = System.currentTimeMillis()
 
-        // Creates a Multilayer Perceptron classifier, using the hyperparameters defined previously
-        val mp = new MultilayerPerceptronClassifier()
+        // Creates a Naive Bayes classifier
+        val nb = new NaiveBayes()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
 
         val paramGrid = new ParamGridBuilder()
-            .addGrid(mp.layers, Array(Array[Int](40, 21, 2)))                       // Layer sizes including input size and output size
-            //.addGrid(mp.maxIter, Array(5,10,20,50,100,200))                       // Param for maximum number of iterations
-            //.addGrid(mp.stepSize, Array(10e-6,10e-5,10e-4,10e-3,10e-2,10e-1,1))   // Param for Step size to be used for each iteration of optimization
-            //.addGrid(mp.tol, Array(0.000001,0.00001,0.0001,0.001))                // Param for the convergence tolerance for iterative algorithms
+            //.addGrid(nb.smoothing, Array(0.0,0.25,0.5,0.75,1.0,2.5,5.0))      // Smoothing Parameter
             .build()
 
         val evaluator = new MulticlassClassificationEvaluator
-        //evaluator.setMetricName("weightedPrecision")                              // Uncomment this line to make the evaluator prioritize another metric
+        //evaluator.setMetricName("weightedPrecision")                          // Uncomment this line to make the evaluator prioritize another metric
 
         val classifier = new CrossValidator()
-            .setEstimator(mp)
+            .setEstimator(nb)
             .setEstimatorParamMaps(paramGrid)
             .setEvaluator(evaluator)
             .setNumFolds(10)
@@ -109,7 +106,7 @@ object NeuralNetwork {
         // Cache model to improve performance
         prediction.cache()
 
-        // Perform an action to accurately measure the test time
+        // Performs an action to accurately measure the test time
         prediction.count()
 
         val testTime = (System.currentTimeMillis() - startTime) / 1000.0
@@ -130,7 +127,7 @@ object NeuralNetwork {
         val auc = aucEvaluator.evaluate(prediction)
 
         // Creates a DataFrame with the resulting metrics, and send them to ElasticSearch
-        val elasticDF = Seq(Row("Multilayer Perceptron", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
+        val elasticDF = Seq(Row("Naive Bayes", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
         val elasticSchema = List(
           StructField("algorithm", StringType, true),
           StructField("accuracy", DoubleType, true),

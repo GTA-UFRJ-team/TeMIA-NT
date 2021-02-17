@@ -1,6 +1,7 @@
 # TeMIA-NT
 
-The code source of TeMIA-NT tool, that classifies incoming network flows based on the 5-tuple and flowtbag [1] features.
+TeMIA-NT (ThrEat Monitoring and Intelligent data Analytics of Network Traffic) é uma ferramenta escalável para análise de tráfego em tempo real usando processamento paralelo de fluxos.
 
+Desenvolvido pela equipe GTA/UFRJ.
 
-[1] https://github.com/DanielArndt/flowtbag
+Visite a [wiki](https://github.com/GTA-UFRJ-team/gta-ids/wiki) para mais informações.

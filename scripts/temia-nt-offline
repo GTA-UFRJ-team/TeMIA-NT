@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Sources config file
+. config-file.conf
+
+if [ "$algorithmSelection" = "All" ]
+then
+        algorithmsFolder=${toolPath}/processing/src/main/scala/offline
+        algorithmList=(`ls $algorithmsFolder | grep ".scala"`) # Puts all .scala files on $algorithmsFolder in an array 
+        algorithmList=(${algorithmList[@]%.scala}) # Removes the .scala suffix from all array elements
+
+else
+        algorithmList="$algorithmSelection" # Fills the array with only the algorithm set on the config file
+fi
+
+numberAlgorithms=${#algorithmList[@]}
+
+echo "Packaging processing module"
+# Packages processing module
+cd $toolPath/processing
+sbt package
+
+# Restarts all necessary services
+echo "Restarting all necessary services"
+echo "Restarting Hadoop"
+/opt/hadoop/sbin/stop-yarn.sh
+/opt/hadoop/sbin/stop-dfs.sh
+/opt/hadoop/sbin/start-dfs.sh
+/opt/hadoop/sbin/start-yarn.sh
+echo "Restarting Elastic stack"
+systemctl stop elasticsearch
+systemctl stop kibana
+systemctl start elasticsearch
+systemctl start kibana
+echo "Restarting Spark"
+/opt/spark/sbin/stop-all.sh
+/opt/spark/sbin/start-all.sh
+
+# Starts flow classification
+echo "Starting flow classification"
+cd $toolPath/processing
+
+echo "Starting tests with all selected algorithms"
+for ((indice=0; indice<$numberAlgorithms; indice++))
+do
+        echo "Testing algorithm ${algorithmList[$indice]}"
+        spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.6.1 --class offline.${algorithmList[$indice]} target/scala-2.11/stream_2.11-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv $clusterSlaves "Network${datasetSize}BinaryBalancedNew.csv" >/dev/null
+        sleep 0.5
+done
+echo "All tests done"

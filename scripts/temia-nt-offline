@@ -21,20 +21,20 @@ cd $toolPath/processing
 sbt package
 
 # Restarts all necessary services
-#echo "Restarting all necessary services"
-#echo "Restarting Hadoop"
-#/opt/hadoop/sbin/stop-yarn.sh
-#/opt/hadoop/sbin/stop-dfs.sh
-#/opt/hadoop/sbin/start-dfs.sh
-#/opt/hadoop/sbin/start-yarn.sh
+echo "Restarting all necessary services"
+echo "Restarting Hadoop"
+/opt/hadoop/sbin/stop-yarn.sh
+/opt/hadoop/sbin/stop-dfs.sh
+/opt/hadoop/sbin/start-dfs.sh
+/opt/hadoop/sbin/start-yarn.sh
 #echo "Restarting Elastic stack"
 #systemctl stop elasticsearch
 #systemctl stop kibana
 #systemctl start elasticsearch
 #systemctl start kibana
-#echo "Restarting Spark"
-#/opt/spark/sbin/stop-all.sh
-#/opt/spark/sbin/start-all.sh
+echo "Restarting Spark"
+/opt/spark/sbin/stop-all.sh
+/opt/spark/sbin/start-all.sh
 
 # Starts flow classification
 echo "Starting flow classification"

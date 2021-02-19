@@ -12,9 +12,6 @@ import br.ufrj.gta.stream.util.File
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.Row
 
-import org.elasticsearch.spark._
-import org.elasticsearch.spark.sql._
-import org.elasticsearch.hadoop.cfg.ConfigurationOptions
 
 object MeanVariance {
     def main(args: Array[String]) {

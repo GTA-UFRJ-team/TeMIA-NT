@@ -14,9 +14,6 @@ import br.ufrj.gta.stream.metrics._
 import br.ufrj.gta.stream.schema.flow.Flowtbag
 import br.ufrj.gta.stream.util.File
 
-import org.elasticsearch.spark._
-import org.elasticsearch.spark.sql._
-import org.elasticsearch.hadoop.cfg.ConfigurationOptions
 
 object RandomForest {
     def main(args: Array[String]) {
@@ -50,8 +47,6 @@ object RandomForest {
         // Creates spark session
         val spark = SparkSession
             .builder
-            .config(ConfigurationOptions.ES_NODES, slaveNodes)
-            .config(ConfigurationOptions.ES_RESOURCE, "spark-offline/classification")
             .appName("Stream")
             .getOrCreate()
 
@@ -133,9 +128,9 @@ object RandomForest {
         val aucEvaluator = new BinaryClassificationEvaluator().setMetricName("areaUnderROC")
         val auc = aucEvaluator.evaluate(prediction)
 
-        // Creates a DataFrame with the resulting metrics, and send them to ElasticSearch
-        val elasticDF = Seq(Row("Random Forest", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
-        val elasticSchema = List(
+        // Creates a DataFrame with the resulting metrics, and save them into a csv file
+        val resultsDF = Seq(Row("Random Forest", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
+        val resultsSchema = List(
           StructField("algorithm", StringType, true),
           StructField("accuracy", DoubleType, true),
           StructField("precision", DoubleType, true),
@@ -146,8 +141,10 @@ object RandomForest {
           StructField("dataset", StringType, true),
           StructField("hyperparameters", StringType, true))
         val someDF = spark
-            .createDataFrame(spark.sparkContext.parallelize(elasticDF),StructType(elasticSchema))
-            .saveToEs("spark-offline/classification")
+            .createDataFrame(spark.sparkContext.parallelize(resultsDF),StructType(resultsSchema))
+            .coalesce(1)
+            .write
+            .csv("/home/gta/TeMIA-NT/results/RandomForest")
 
         spark.stop()
     }

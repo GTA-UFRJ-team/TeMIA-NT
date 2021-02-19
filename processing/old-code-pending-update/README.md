@@ -1,0 +1,1 @@
+The scala sources on these folders must be adapted to not use ElasticSearch and save the results in a csv file. Please refer to /src/scala/main/offline/*.scala codes for a good example. Once all the files in a folder are updated, please move it back to its original location in /src/scala/main and attempt to recompile the project.

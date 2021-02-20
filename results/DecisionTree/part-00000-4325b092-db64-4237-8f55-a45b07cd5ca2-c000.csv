@@ -1,0 +1,18 @@
+Decision Tree,0.8649093904448105,0.8161993769470405,0.9192982456140351,0.8646864686468646,0.8161993769470405,0.9192982456140351,0.8646864686468646,0.8732319930260433,8.674,Network2KBinaryBalancedNew.csv,"{
+	dtc_30159785a0e0-cacheNodeIds: false,
+	dtc_30159785a0e0-checkpointInterval: 10,
+	dtc_30159785a0e0-featuresCol: features,
+	dtc_30159785a0e0-impurity: entropy,
+	dtc_30159785a0e0-labelCol: label,
+	dtc_30159785a0e0-leafCol: ,
+	dtc_30159785a0e0-maxBins: 32,
+	dtc_30159785a0e0-maxDepth: 5,
+	dtc_30159785a0e0-maxMemoryInMB: 256,
+	dtc_30159785a0e0-minInfoGain: 0.0,
+	dtc_30159785a0e0-minInstancesPerNode: 1,
+	dtc_30159785a0e0-minWeightFractionPerNode: 0.0,
+	dtc_30159785a0e0-predictionCol: prediction,
+	dtc_30159785a0e0-probabilityCol: probability,
+	dtc_30159785a0e0-rawPredictionCol: rawPrediction,
+	dtc_30159785a0e0-seed: 159147643
+}"

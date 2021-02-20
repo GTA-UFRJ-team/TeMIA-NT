@@ -72,15 +72,15 @@ object SupportVectorMachine {
             .setLabelCol(labelCol)
 
         val paramGrid = new ParamGridBuilder()
-            //.addGrid(svm.fitIntercept, Array(true,false))             // Param for whether to fit an intercept term
-            //.addGrid(svm.maxIter, Array(5,10,20,50,100,200))          // Param for maximum number of iterations
-            //.addGrid(svm.regParam, Array(0.0,0.01,0.1,0.3))           // Param for regularization parameter
-            //.addGrid(svm.standardization, Array(true, false))         // Param for whether to standardize the training features before fitting the model
-            //.addGrid(svm.tol, Array(0.000001,0.00001,0.0001,0.001))   // Param for the convergence tolerance for iterative algorithms
+            .addGrid(svm.fitIntercept, Array(true,false))             // Param for whether to fit an intercept term
+            .addGrid(svm.maxIter, Array(5,10,20,50,100,200))          // Param for maximum number of iterations
+            .addGrid(svm.regParam, Array(0.0,0.01,0.1,0.3))           // Param for regularization parameter
+            .addGrid(svm.standardization, Array(true, false))         // Param for whether to standardize the training features before fitting the model
+            .addGrid(svm.tol, Array(0.000001,0.00001,0.0001,0.001))   // Param for the convergence tolerance for iterative algorithms
             .build()
 
         val evaluator = new MulticlassClassificationEvaluator
-        //evaluator.setMetricName("weightedPrecision")                  // Uncomment this line to make the evaluator prioritize another metric
+        evaluator.setMetricName("precisionByLabel").setMetricLabel(1)                  // Uncomment this line to make the evaluator prioritize another metric
 
         val classifier = new CrossValidator()
             .setEstimator(svm)
@@ -140,7 +140,7 @@ object SupportVectorMachine {
             .createDataFrame(spark.sparkContext.parallelize(resultsDF),StructType(resultsSchema))
             .coalesce(1)
             .write
-            .csv("/home/gta/TeMIA-NT/results/SupportVectorMachine")
+            .csv("/home/gta/spark3/TeMIA-NT/results/SupportVectorMachine")
 
         spark.stop()
     }

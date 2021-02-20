@@ -1,4 +1,10 @@
-[0m[[0m[33mwarn[0m] [0m[0m/home/gta/TeMIA-NT/processing/src/main/scala/offline/NaiveBayes.scala:3:43: imported `NaiveBayes' is permanently hidden by definition of object NaiveBayes in package offline[0m
-[0m[[0m[33mwarn[0m] [0m[0mimport org.apache.spark.ml.classification.NaiveBayes[0m
-[0m[[0m[33mwarn[0m] [0m[0m                                          ^[0m
-[0m[[0m[33mwarn[0m] [0m[0mone warning found[0m
+[0m[[0m[31merror[0m] [0m[0m/home/gta/spark3/TeMIA-NT/processing/src/main/scala/offline/DecisionTree.scala:132:13: newPrecision is already defined as value newPrecision[0m
+[0m[[0m[31merror[0m] [0m[0m        val newPrecision = 1.0[0m
+[0m[[0m[31merror[0m] [0m[0m            ^[0m
+[0m[[0m[31merror[0m] [0m[0m/home/gta/spark3/TeMIA-NT/processing/src/main/scala/offline/DecisionTree.scala:133:13: newRecall is already defined as value newRecall[0m
+[0m[[0m[31merror[0m] [0m[0m        val newRecall = 1.0[0m
+[0m[[0m[31merror[0m] [0m[0m            ^[0m
+[0m[[0m[31merror[0m] [0m[0m/home/gta/spark3/TeMIA-NT/processing/src/main/scala/offline/DecisionTree.scala:134:13: newF1 is already defined as value newF1[0m
+[0m[[0m[31merror[0m] [0m[0m        val newF1 = 1.0[0m
+[0m[[0m[31merror[0m] [0m[0m            ^[0m
+[0m[[0m[31merror[0m] [0m[0mthree errors found[0m

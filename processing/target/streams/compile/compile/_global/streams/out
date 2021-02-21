@@ -1,4 +1,2 @@
-[0m[[0m[33mwarn[0m] [0m[0m/home/gta/TeMIA-NT/processing/src/main/scala/offline/NaiveBayes.scala:3:43: imported `NaiveBayes' is permanently hidden by definition of object NaiveBayes in package offline[0m
-[0m[[0m[33mwarn[0m] [0m[0mimport org.apache.spark.ml.classification.NaiveBayes[0m
-[0m[[0m[33mwarn[0m] [0m[0m                                          ^[0m
+[0m[[0m[33mwarn[0m] [0m[0mthere was one deprecation warning (since 2.12.0); re-run with -deprecation for details[0m
 [0m[[0m[33mwarn[0m] [0m[0mone warning found[0m

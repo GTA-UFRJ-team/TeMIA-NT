@@ -85,7 +85,7 @@ object RandomForest {
             .build()
 
         val evaluator = new MulticlassClassificationEvaluator
-        evaluator.setMetricName("precisionByLabel").setMetricLabel(1)                   // Uncomment this line to make the evaluator prioritize another metric
+        evaluator.setMetricName("fMeasureByLabel").setMetricLabel(1)                   // Uncomment this line to make the evaluator prioritize another metric
 
         val classifier = new CrossValidator()
             .setEstimator(rf)
@@ -145,8 +145,7 @@ object RandomForest {
             .createDataFrame(spark.sparkContext.parallelize(resultsDF),StructType(resultsSchema))
             .coalesce(1)
             .write
-            .mode("append")
-            .csv("/home/gta/TeMIA-NT/results/RandomForest")
+            .csv("/home/gta/TeMIA-NT/results/RandomForest-F1")
 
         spark.stop()
     }

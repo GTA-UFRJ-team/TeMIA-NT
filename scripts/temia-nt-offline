@@ -44,7 +44,7 @@ echo "Starting tests with all selected algorithms"
 for ((indice=0; indice<$numberAlgorithms; indice++))
 do
         echo "Testing algorithm ${algorithmList[$indice]}"
-        spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.11.1 --class offline.${algorithmList[$indice]} target/scala-2.12/stream_2.12-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/Network${datasetSize}BinaryBalancedNew.csv $clusterSlaves "Network${datasetSize}BinaryBalancedNew.csv" >/dev/null
+        spark-submit --master spark://master:7077 --packages org.elasticsearch:elasticsearch-hadoop:7.11.1 --class offline.${algorithmList[$indice]} target/scala-2.12/stream_2.12-0.1.0-SNAPSHOT.jar hdfs://master:9000/user/app/conjunto_de_dados_transformado.csv $cluterSlaves "conjunto_de_dados_transformado.csv" >/dev/null --executor-memory 10G
         sleep 0.5
 done
 echo "All tests done"

@@ -1,7 +1,7 @@
 package offline
 
-import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.feature.{PCA, VectorIndexer}
+import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.feature.PCA
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, BinaryClassificationEvaluator}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
@@ -14,8 +14,7 @@ import br.ufrj.gta.stream.metrics._
 import br.ufrj.gta.stream.schema.flow.Flowtbag
 import br.ufrj.gta.stream.util.File
 
-
-object RandomForest {
+object DecisionTree {
     def main(args: Array[String]) {
 
         // Sets dataset file separation string ("," for csv) and label column name
@@ -60,35 +59,32 @@ object RandomForest {
         // Creates a single vector column containing all features
         val featurizedData = Flowtbag.featurize(inputData, featuresCol)
 
-        // Splits the dataset on training (70%) and test (30%, with the seed '534661')
+        // Splits the dataset on training (70%) and test (30%), with the seed '534661'
         val splitData = featurizedData.randomSplit(Array(0.7, 0.3), 534661)
         val trainingData = splitData(0)
         val testData = splitData(1)
 
         var startTime = System.currentTimeMillis()
 
-        // Creates a Random Forest classifier, using the hyperparameters defined previously
-        val rf = new RandomForestClassifier()
+        // Creates a Decision Tree classifier, using the hyperparameters defined previously
+        val dt = new DecisionTreeClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
             .setSeed(534661)
 
         val paramGrid = new ParamGridBuilder()
-            .addGrid(rf.featureSubsetStrategy, Array("all","onethird","sqrt","log2"))         // The number of features to consider for splits at each tree node
-            .addGrid(rf.impurity, Array("gini","entropy"))                                    // Criterion used for information gain calculation
-            .addGrid(rf.maxDepth, Array(3,6,9,12,15,18,21,24,27,30))                          // Maximum depth of the tree
-            .addGrid(rf.maxBins, Array(2,4,8,16,32))                                          // Maximum number of bins used for discretizing continuous features and for choosing how to split on features at each node
-            .addGrid(rf.minInfoGain, Array(0.0,0.1,0.2,0.3,0.4,0.5))                          // Minimum information gain for a split to be considered at a tree node
-            .addGrid(rf.minInstancesPerNode, Array(1,2,5,10,20,40))                           // Minimum number of instances each child must have after split
-            .addGrid(rf.numTrees, Array(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000))   // Number of trees to train
-            .addGrid(rf.subsamplingRate, Array(0.5,0.75,1.0))                                 // Fraction of the training data used for learning each decision tree
+            .addGrid(dt.impurity, Array("gini","entropy"))            // Criterion used for information gain calculation
+            .addGrid(dt.maxDepth, Array(3,6,9,12,15,18,21,24,27,30))  // Maximum depth of the tree
+            .addGrid(dt.maxBins, Array(2,4,8,16,32))                  // Maximum number of bins used for discretizing continuous features and for choosing how to split on features at each node
+            .addGrid(dt.minInfoGain, Array(0.0,0.1,0.2,0.3,0.4,0.5))  // Minimum information gain for a split to be considered at a tree node
+            .addGrid(dt.minInstancesPerNode, Array(1,2,5,10,20,40))   // Minimum number of instances each child must have after split
             .build()
 
         val evaluator = new MulticlassClassificationEvaluator
-        evaluator.setMetricName("precisionByLabel").setMetricLabel(1)                   // Uncomment this line to make the evaluator prioritize another metric
+        evaluator.setMetricName("fMeasureByLabel").setMetricLabel(1)                   // Uncomment this line to make the evaluator prioritize another metric
 
         val classifier = new CrossValidator()
-            .setEstimator(rf)
+            .setEstimator(dt)
             .setEstimatorParamMaps(paramGrid)
             .setEvaluator(evaluator)
             .setNumFolds(10)
@@ -109,7 +105,7 @@ object RandomForest {
         // Cache model to improve performance
         prediction.cache()
 
-        // Perform an action to accurately measure the test time
+        // Performs an action to accurately measure the test time
         prediction.count()
 
         val testTime = (System.currentTimeMillis() - startTime) / 1000.0
@@ -129,8 +125,8 @@ object RandomForest {
         val aucEvaluator = new BinaryClassificationEvaluator().setMetricName("areaUnderROC")
         val auc = aucEvaluator.evaluate(prediction)
 
-        // Creates a DataFrame with the resulting metrics, and save them into a csv file
-        val resultsDF = Seq(Row("Random Forest", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
+        // Creates a DataFrame with the resulting metrics, and save them in a csv file
+        val resultsDF = Seq(Row("Decision Tree", accuracy, precision, recall, f1, auc, trainingTime, dataset, hyperparameters.toString()))
         val resultsSchema = List(
           StructField("algorithm", StringType, true),
           StructField("accuracy", DoubleType, true),
@@ -146,7 +142,7 @@ object RandomForest {
             .coalesce(1)
             .write
             .mode("append")
-            .csv("/home/gta/TeMIA-NT/results/RandomForest")
+            .csv("/home/gta/TeMIA-NT/results/DecisionTree-F1")
 
         spark.stop()
     }

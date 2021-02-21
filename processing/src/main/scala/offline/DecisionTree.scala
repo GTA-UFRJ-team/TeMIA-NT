@@ -70,17 +70,18 @@ object DecisionTree {
         val dt = new DecisionTreeClassifier()
             .setFeaturesCol(featuresCol)
             .setLabelCol(labelCol)
+            .setSeed(534661)
 
         val paramGrid = new ParamGridBuilder()
-            //.addGrid(dt.impurity, Array("gini","entropy"))            // Criterion used for information gain calculation
-            //.addGrid(dt.maxDepth, Array(3,6,9,12,15,18,21,24,27,30))  // Maximum depth of the tree
-            //.addGrid(dt.maxBins, Array(2,4,8,16,32))                  // Maximum number of bins used for discretizing continuous features and for choosing how to split on features at each node
-            //.addGrid(dt.minInfoGain, Array(0.0,0.1,0.2,0.3,0.4,0.5))  // Minimum information gain for a split to be considered at a tree node
-            //.addGrid(dt.minInstancesPerNode, Array(1,2,5,10,20,40))   // Minimum number of instances each child must have after split
+            .addGrid(dt.impurity, Array("gini","entropy"))            // Criterion used for information gain calculation
+            .addGrid(dt.maxDepth, Array(3,6,9,12,15,18,21,24,27,30))  // Maximum depth of the tree
+            .addGrid(dt.maxBins, Array(2,4,8,16,32))                  // Maximum number of bins used for discretizing continuous features and for choosing how to split on features at each node
+            .addGrid(dt.minInfoGain, Array(0.0,0.1,0.2,0.3,0.4,0.5))  // Minimum information gain for a split to be considered at a tree node
+            .addGrid(dt.minInstancesPerNode, Array(1,2,5,10,20,40))   // Minimum number of instances each child must have after split
             .build()
 
-        val evaluator = new MulticlassClassificationEvaluator
-        //evaluator.setMetricName("weightedPrecision")                  // Uncomment this line to make the evaluator prioritize another metric
+          val evaluator = new MulticlassClassificationEvaluator
+          evaluator.setMetricName("precisionByLabel").setMetricLabel(1)                   // Uncomment this line to make the evaluator prioritize another metric
 
         val classifier = new CrossValidator()
             .setEstimator(dt)
@@ -140,6 +141,7 @@ object DecisionTree {
             .createDataFrame(spark.sparkContext.parallelize(resultsDF),StructType(resultsSchema))
             .coalesce(1)
             .write
+            .mode("append")
             .csv("/home/gta/TeMIA-NT/results/DecisionTree")
 
         spark.stop()

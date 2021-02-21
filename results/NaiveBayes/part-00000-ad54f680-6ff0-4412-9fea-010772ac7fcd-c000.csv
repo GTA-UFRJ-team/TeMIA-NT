@@ -1,9 +1,0 @@
-Naive Bayes,0.5535420098846787,0.5129151291512916,0.9754385964912281,0.6723095525997582,0.43407431622534604,28.787,Network2KBinaryBalancedNew.csv,"{
-	nb_6fca107e9c67-featuresCol: features,
-	nb_6fca107e9c67-labelCol: label,
-	nb_6fca107e9c67-modelType: multinomial,
-	nb_6fca107e9c67-predictionCol: prediction,
-	nb_6fca107e9c67-probabilityCol: probability,
-	nb_6fca107e9c67-rawPredictionCol: rawPrediction,
-	nb_6fca107e9c67-smoothing: 1.0
-}"

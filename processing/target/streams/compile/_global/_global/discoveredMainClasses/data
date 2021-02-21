@@ -1,1 +1,1 @@
-["flow.GTAFlow","offline.DecisionTree","offline.GradientBoostedTree","offline.LogisticRegression","offline.MeanVariance","offline.NaiveBayes","offline.NeuralNetwork","offline.RandomForest","offline.SupportVectorMachine","online.DecisionTree","online.LogisticRegression","online.MeanVariance","online.NeuralNetwork","online.RandomForest","online.SupportVectorMachine"]
+["flow.GTAFlow","offline.DecisionTree","offline.RandomForest","online.DecisionTree","online.LogisticRegression","online.MeanVariance","online.NeuralNetwork","online.RandomForest","online.SupportVectorMachine"]
